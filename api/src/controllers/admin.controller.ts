@@ -14,6 +14,7 @@ export class AdminController {
    * GET /admin/keys
    * List all API keys with metadata
    */
+  // eslint-disable-next-line @typescript-eslint/require-await
   static async listKeys(_req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const keys = ApiKeysRepository.findAll();
@@ -43,9 +44,11 @@ export class AdminController {
    * Create a new API key
    * Body: { name: string }
    */
+  // eslint-disable-next-line @typescript-eslint/require-await
   static async createKey(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const { name } = req.body;
+      const body = req.body as { name?: string } | undefined;
+      const { name } = body || {};
 
       if (!name || typeof name !== 'string' || name.trim().length === 0) {
         throw new ValidationError('Invalid API key name', {
@@ -79,6 +82,7 @@ export class AdminController {
    * Deactivate an API key
    * Params: { key: string }
    */
+  // eslint-disable-next-line @typescript-eslint/require-await
   static async deleteKey(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       let { key } = req.params;
@@ -129,6 +133,7 @@ export class AdminController {
    * GET /admin/stats
    * Get API usage statistics
    */
+  // eslint-disable-next-line @typescript-eslint/require-await
   static async getStats(_req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const stats = ApiKeysRepository.getStats();
@@ -152,6 +157,7 @@ export class AdminController {
    * Get details for a specific API key
    * Params: { key: string }
    */
+  // eslint-disable-next-line @typescript-eslint/require-await
   static async getKeyDetails(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       let { key } = req.params;
@@ -201,6 +207,7 @@ export class AdminController {
    * Params: { key: string }
    * Body: { name?: string, is_active?: boolean }
    */
+  // eslint-disable-next-line @typescript-eslint/require-await
   static async updateKey(req: Request, _res: Response, next: NextFunction): Promise<void> {
     try {
       let { key } = req.params;

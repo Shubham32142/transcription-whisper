@@ -171,6 +171,7 @@ const keyCount = db.prepare("SELECT COUNT(*) as count FROM api_keys").get() as {
 };
 if (keyCount.count === 0) {
   createApiKey("Default Test Key");
+  // eslint-disable-next-line no-console
   console.log("Created default API key for testing");
 }
 

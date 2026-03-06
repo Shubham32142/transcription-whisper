@@ -1,7 +1,21 @@
 import { Request, Response, NextFunction } from 'express';
+import { cpus } from 'os';
 import { config } from '../config';
 import { ApiResponseSuccess } from '../utils/response';
 import { ApiKeysRepository } from '../repositories/apiKeys.repository';
+
+// Type definitions for dependency health checks
+interface DependencyStatus {
+  status: 'checking' | 'healthy' | 'unhealthy' | 'unreachable';
+  statusCode?: number;
+  error?: string;
+  records?: number;
+}
+
+interface DependenciesResponse {
+  ml_service: DependencyStatus & { url: string };
+  database: DependencyStatus & { path: string };
+}
 
 /**
  * HealthController - System health and status monitoring
@@ -118,8 +132,7 @@ export class HealthController {
    */
   static async dependencies(_req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const deps: any = {
+      const deps: DependenciesResponse = {
         ml_service: {
           url: config.ml.serviceUrl,
           status: 'checking' as const,
@@ -169,7 +182,6 @@ export class HealthController {
    */
   static metrics(_req: Request, res: Response, next: NextFunction): void {
     try {
-      const { cpus } = require('os');
       const metrics = {
         uptime_seconds: process.uptime(),
         memory_usage: {

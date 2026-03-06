@@ -54,9 +54,11 @@ app.use(`/transcribe`, limiter);
 
 // Health check (no auth required)
 app.get('/health', (req, res, next) => {
+  /* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access */
   const handler = transcribeRouter.stack
     .find((layer: any) => layer.route?.path === '/health')
     ?.route?.stack?.[0]?.handle;
+  /* eslint-enable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access */
   if (handler) {
     handler(req, res, next);
   } else {
@@ -66,9 +68,11 @@ app.get('/health', (req, res, next) => {
 
 // Public API config
 app.get('/api/config', (req, res, next) => {
+  /* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access */
   const handler = transcribeRouter.stack
     .find((layer: any) => layer.route?.path === '/api/config')
     ?.route?.stack?.[0]?.handle;
+  /* eslint-enable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access */
   if (handler) {
     handler(req, res, next);
   } else {
@@ -93,8 +97,12 @@ app.use(errorHandler);
 // ==================== SERVER STARTUP ====================
 
 app.listen(config.port, () => {
+  // eslint-disable-next-line no-console
   console.log(`WhisperSelf API listening on port ${config.port}`);
+  // eslint-disable-next-line no-console
   console.log(`Environment: ${config.nodeEnv}`);
+  // eslint-disable-next-line no-console
   console.log(`ML Service: ${config.ml.serviceUrl}`);
+  // eslint-disable-next-line no-console
   console.log(`Database: ${config.db.path}`);
 });

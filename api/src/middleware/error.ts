@@ -2,6 +2,14 @@ import { Request, Response, NextFunction } from 'express';
 import { ApiResponseError } from '../utils/response';
 import { ApiError } from '../utils/error';
 
+// Multer error type definition
+interface MulterError {
+  code: string;
+  field?: string;
+  limit?: number;
+  size?: number;
+}
+
 /**
  * Global Error Handling Middleware
  * Catches all errors thrown in route handlers and formats responses
@@ -25,7 +33,7 @@ export function errorHandler(err: unknown, _req: Request, res: Response, _next: 
 
   // Handle multer file upload errors
   if (err && typeof err === 'object' && 'code' in err) {
-    const error = err as any;
+    const error = err as MulterError;
 
     // Multer file size limit error
     if (error.code === 'LIMIT_FILE_SIZE') {
@@ -64,7 +72,7 @@ export function errorHandler(err: unknown, _req: Request, res: Response, _next: 
   if (err instanceof Error) {
     let statusCode = 500;
     let errorCode = 'INTERNAL_SERVER_ERROR';
-    let message = err.message || 'An unexpected error occurred';
+    const message = err.message || 'An unexpected error occurred';
 
     // Parse specific error messages for better error codes
     if (message.includes('ENOENT')) {
@@ -113,9 +121,11 @@ export function requestLogger(req: Request, res: Response, next: NextFunction): 
 
   // Capture response status
   const originalJson = res.json.bind(res);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   res.json = function (body: any) {
     const duration = Date.now() - start;
 
+    // eslint-disable-next-line no-console
     console.log({
       timestamp: new Date().toISOString(),
       method: req.method,

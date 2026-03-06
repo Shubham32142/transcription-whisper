@@ -40,8 +40,8 @@ export function apiAuth(req: Request, _res: Response, next: NextFunction): void 
     ApiKeysRepository.recordUsage(providedApiKey);
 
     // Store API key in request for later use
-    (req as any).apiKey = providedApiKey;
-    (req as any).apiKeyRecord = keyRecord;
+    req.apiKey = providedApiKey;
+    req.apiKeyRecord = keyRecord;
 
     next();
   } catch (error) {
@@ -71,7 +71,7 @@ export function adminAuth(req: Request, _res: Response, next: NextFunction): voi
       });
     }
 
-    (req as any).isAdmin = true;
+    req.isAdmin = true;
     next();
   } catch (error) {
     next(error);

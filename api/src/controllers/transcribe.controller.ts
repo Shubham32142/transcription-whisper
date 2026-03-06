@@ -52,8 +52,9 @@ export class TranscribeController {
       }
 
       // Extract language and task from request
-      let language = (req.body.language as string) || 'auto';
-      let task = (req.body.task as string) || 'transcribe';
+      const body = req.body as { language?: string; task?: string } | undefined;
+      const language = body?.language || 'auto';
+      const task = body?.task || 'transcribe';
 
       // Validate language
       const supportedLanguages = ['auto', 'en', 'es', 'fr', 'de', 'ja', 'zh', 'ar', 'pt', 'ru'];
@@ -85,7 +86,7 @@ export class TranscribeController {
       const result = await transcribeService.transcribe(transcriptionRequest);
 
       // Extract API key for usage recording (if present)
-      const apiKey = (req as any).apiKey;
+      const apiKey = req.apiKey;
       if (apiKey) {
         // Record usage - fire and forget
         transcribeService.recordUsage(apiKey);
@@ -152,6 +153,7 @@ export class TranscribeController {
    * GET /api/config
    * Get public API configuration (upload limits, supported languages, etc.)
    */
+  // eslint-disable-next-line @typescript-eslint/require-await
   static async getConfig(_req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const publicConfig = {
@@ -180,6 +182,7 @@ export class TranscribeController {
    * GET /transcribe/:id
    * Get transcription result by ID (placeholder for future implementation)
    */
+  // eslint-disable-next-line @typescript-eslint/require-await
   static async getById(req: Request, _res: Response, next: NextFunction): Promise<void> {
     try {
       const { id } = req.params;
@@ -204,6 +207,7 @@ export class TranscribeController {
    * DELETE /transcribe/:id
    * Delete transcription result by ID (placeholder for future implementation)
    */
+  // eslint-disable-next-line @typescript-eslint/require-await
   static async deleteById(req: Request, _res: Response, next: NextFunction): Promise<void> {
     try {
       const { id } = req.params;

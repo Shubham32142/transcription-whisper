@@ -7,8 +7,9 @@ export function validateTranscribeRequest(
   res: Response,
   next: NextFunction,
 ): void {
-  const languageRaw = req.body?.language;
-  const taskRaw = req.body?.task;
+  const body = req.body as { language?: string; task?: string } | undefined;
+  const languageRaw = body?.language;
+  const taskRaw = body?.task;
 
   if (!req.file) {
     res.status(400).json({ success: false, error: "Audio file is required" });
