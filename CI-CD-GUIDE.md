@@ -5,6 +5,7 @@ This repository has automated checks configured to run on every push and pull re
 ## What Gets Checked
 
 ### API (Node.js/TypeScript)
+
 1. **Linting** - ESLint checks for code quality issues
    - ❌ **Unused variables are ERRORS** (not warnings)
    - Uses variables prefixed with `_` are allowed (e.g., `_unusedVar`)
@@ -21,6 +22,7 @@ This repository has automated checks configured to run on every push and pull re
    - Checks module resolution
 
 ### ML Service (Python)
+
 1. **Linting** - Flake8 for Python code quality
 2. **Type Checking** - MyPy for static type analysis
 3. **Code Formatting** - Black and isort checks
@@ -30,6 +32,7 @@ This repository has automated checks configured to run on every push and pull re
 ## Running Checks Locally
 
 ### API Checks
+
 ```bash
 cd api
 
@@ -49,6 +52,7 @@ pnpm format:check      # Check formatting
 ```
 
 ### ML Service Checks
+
 ```bash
 # Install Python linting tools
 pip install flake8 mypy black isort
@@ -63,6 +67,7 @@ mypy ml/               # Type check
 ## Pre-Commit Checks
 
 Before committing, run:
+
 ```bash
 cd api
 pnpm precommit         # Runs lint + type-check
@@ -101,6 +106,7 @@ The GitHub Actions workflow runs automatically:
 ## Fixing Common Issues
 
 ### Unused Variable Errors
+
 ```typescript
 // ❌ Error: 'unused' is declared but never used
 const unused = 123;
@@ -117,26 +123,29 @@ const _unused = 123;
 ```
 
 ### Type Errors
+
 ```typescript
 // ❌ Error: any type not allowed
-function bad(x: any) { }
+function bad(x: any) {}
 
 // ✅ Fix: Use proper types
-function good(x: string) { }
+function good(x: string) {}
 ```
 
 ### Missing Return Types
+
 ```typescript
 // ❌ Error: Missing return type
-async function fetch() { }
+async function fetch() {}
 
 // ✅ Fix: Add return type
-async function fetch(): Promise<void> { }
+async function fetch(): Promise<void> {}
 ```
 
 ## Pipeline Status
 
 You can view the pipeline status on GitHub:
+
 - Go to your repository
 - Click "Actions" tab
 - See build status for each commit

@@ -22,18 +22,20 @@ WhisperSelf is a self-hosted speech-to-text API built with `faster-whisper`, Fas
    ```bash
    cp .env.example .env
    ```
-   
 3. **Download Whisper model:**
+
    ```bash
    python scripts/download_model.py --model large-v3 --output ./models
    ```
 
 4. **Run ML service:**
+
    ```bash
    cd ml && uvicorn serve:app --host 0.0.0.0 --port 8000 --reload
    ```
 
 5. **Run API service:**
+
    ```bash
    cd api && pnpm dev
    ```
@@ -66,16 +68,19 @@ No API key needed! Just visit http://localhost:3000 and start transcribing.
 ### Endpoint: `POST /transcribe`
 
 **Headers:**
+
 ```
 x-api-key: YOUR_API_KEY
 ```
 
 **Body** (`multipart/form-data`):
+
 - `file` (required): Audio or video file
 - `language` (optional): Language code (default: `auto`)
 - `task` (optional): `transcribe` or `translate` (default: `transcribe`)
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -87,6 +92,7 @@ x-api-key: YOUR_API_KEY
 ```
 
 **Example (cURL):**
+
 ```bash
 curl -X POST http://localhost:3000/transcribe \
   -H "x-api-key: YOUR_API_KEY" \
@@ -100,6 +106,7 @@ See http://localhost:3000/developer.html for more examples in Python, JavaScript
 ## Admin Panel
 
 Access at `/admin.html` to:
+
 - Generate new API keys
 - View all API keys and their usage
 - Deactivate compromised keys
@@ -110,6 +117,7 @@ Access at `/admin.html` to:
 ## Database
 
 WhisperSelf uses SQLite for:
+
 - API key storage and validation
 - Usage tracking and statistics
 - Transcription history
@@ -121,6 +129,7 @@ Database file: `whisperself.db` (created automatically in project root)
 ## Docker Deployment
 
 Build and run both services:
+
 ```bash
 cd docker && docker-compose up --build
 ```

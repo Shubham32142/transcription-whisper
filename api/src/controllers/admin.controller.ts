@@ -1,13 +1,8 @@
-import { Request, Response, NextFunction } from "express";
-import { ApiResponseSuccess } from "../utils/response";
-import {
-  ValidationError,
-  NotFoundError,
-  AuthError,
-  ApiError,
-} from "../utils/error";
-import { ApiKeysRepository } from "../repositories/apiKeys.repository";
-import { ApiKeyResponse } from "../types";
+import { Request, Response, NextFunction } from 'express';
+import { ApiResponseSuccess } from '../utils/response';
+import { ValidationError, NotFoundError, AuthError, ApiError } from '../utils/error';
+import { ApiKeysRepository } from '../repositories/apiKeys.repository';
+import { ApiKeyResponse } from '../types';
 
 /**
  * AdminController - Handles all admin API key management requests
@@ -18,11 +13,7 @@ export class AdminController {
    * GET /admin/keys
    * List all API keys with metadata
    */
-  static async listKeys(
-    req: Request,
-    res: Response,
-    next: NextFunction,
-  ): Promise<void> {
+  static async listKeys(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const keys = ApiKeysRepository.findAll();
 
@@ -38,7 +29,7 @@ export class AdminController {
       res.json(
         new ApiResponseSuccess(
           { keys: maskedKeys, total: maskedKeys.length },
-          "API keys retrieved successfully",
+          'API keys retrieved successfully',
         ),
       );
     } catch (error) {
@@ -51,24 +42,20 @@ export class AdminController {
    * Create a new API key
    * Body: { name: string }
    */
-  static async createKey(
-    req: Request,
-    res: Response,
-    next: NextFunction,
-  ): Promise<void> {
+  static async createKey(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const { name } = req.body;
 
-      if (!name || typeof name !== "string" || name.trim().length === 0) {
-        throw new ValidationError("Invalid API key name", {
-          field: "name",
-          message: "name must be a non-empty string",
+      if (!name || typeof name !== 'string' || name.trim().length === 0) {
+        throw new ValidationError('Invalid API key name', {
+          field: 'name',
+          message: 'name must be a non-empty string',
         });
       }
 
       // Generate a new API key
-      const crypto = require("crypto");
-      const newKey = `wsp_${crypto.randomBytes(32).toString("hex")}`;
+      const crypto = require('crypto');
+      const newKey = `wsp_${crypto.randomBytes(32).toString('hex')}`;
 
       // Save to database
       const keyRecord = ApiKeysRepository.create(newKey, name.trim());
@@ -81,12 +68,7 @@ export class AdminController {
         is_active: keyRecord.is_active === 1,
       };
 
-      res.status(201).json(
-        new ApiResponseSuccess(
-          response,
-          "API key created successfully",
-        ),
-      );
+      res.status(201).json(new ApiResponseSuccess(response, 'API key created successfully'));
     } catch (error) {
       next(error);
     }
@@ -97,11 +79,7 @@ export class AdminController {
    * Deactivate an API key
    * Params: { key: string }
    */
-  static async deleteKey(
-    req: Request,
-    res: Response,
-    next: NextFunction,
-  ): Promise<void> {
+  static async deleteKey(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       let { key } = req.params;
 
@@ -110,10 +88,10 @@ export class AdminController {
         key = key[0];
       }
 
-      if (!key || typeof key !== "string" || key.trim().length === 0) {
-        throw new ValidationError("Invalid API key", {
-          field: "key",
-          message: "API key is required in URL path",
+      if (!key || typeof key !== 'string' || key.trim().length === 0) {
+        throw new ValidationError('Invalid API key', {
+          field: 'key',
+          message: 'API key is required in URL path',
         });
       }
 
@@ -122,8 +100,8 @@ export class AdminController {
       // Verify key exists
       const existingKey = ApiKeysRepository.findByKey(key);
       if (!existingKey) {
-        throw new NotFoundError("API key not found", {
-          key: key.substring(0, 4) + "...",
+        throw new NotFoundError('API key not found', {
+          key: key.substring(0, 4) + '...',
         });
       }
 
@@ -131,18 +109,15 @@ export class AdminController {
       const success = ApiKeysRepository.deactivate(key);
 
       if (!success) {
-        throw new ApiError(
-          "Failed to deactivate API key",
-          500,
-          "DEACTIVATION_FAILED",
-          { key: key.substring(0, 4) + "..." },
-        );
+        throw new ApiError('Failed to deactivate API key', 500, 'DEACTIVATION_FAILED', {
+          key: key.substring(0, 4) + '...',
+        });
       }
 
       res.json(
         new ApiResponseSuccess(
-          { key: key.substring(0, 4) + "..." },
-          "API key deactivated successfully",
+          { key: key.substring(0, 4) + '...' },
+          'API key deactivated successfully',
         ),
       );
     } catch (error) {
@@ -154,11 +129,7 @@ export class AdminController {
    * GET /admin/stats
    * Get API usage statistics
    */
-  static async getStats(
-    req: Request,
-    res: Response,
-    next: NextFunction,
-  ): Promise<void> {
+  static async getStats(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const stats = ApiKeysRepository.getStats();
 
@@ -170,12 +141,7 @@ export class AdminController {
         timestamp: new Date().toISOString(),
       };
 
-      res.json(
-        new ApiResponseSuccess(
-          responseStats,
-          "Admin statistics retrieved successfully",
-        ),
-      );
+      res.json(new ApiResponseSuccess(responseStats, 'Admin statistics retrieved successfully'));
     } catch (error) {
       next(error);
     }
@@ -186,11 +152,7 @@ export class AdminController {
    * Get details for a specific API key
    * Params: { key: string }
    */
-  static async getKeyDetails(
-    req: Request,
-    res: Response,
-    next: NextFunction,
-  ): Promise<void> {
+  static async getKeyDetails(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       let { key } = req.params;
 
@@ -199,10 +161,10 @@ export class AdminController {
         key = key[0];
       }
 
-      if (!key || typeof key !== "string" || key.trim().length === 0) {
-        throw new ValidationError("Invalid API key", {
-          field: "key",
-          message: "API key is required in URL path",
+      if (!key || typeof key !== 'string' || key.trim().length === 0) {
+        throw new ValidationError('Invalid API key', {
+          field: 'key',
+          message: 'API key is required in URL path',
         });
       }
 
@@ -211,14 +173,15 @@ export class AdminController {
       const keyRecord = ApiKeysRepository.findByKey(key);
 
       if (!keyRecord) {
-        throw new NotFoundError("API key not found", {
-          key: key.substring(0, 4) + "...",
+        throw new NotFoundError('API key not found', {
+          key: key.substring(0, 4) + '...',
         });
       }
 
       const response = {
         id: keyRecord.id,
-        key: keyRecord.key.substring(0, 4) + "..." + keyRecord.key.substring(keyRecord.key.length - 8),
+        key:
+          keyRecord.key.substring(0, 4) + '...' + keyRecord.key.substring(keyRecord.key.length - 8),
         name: keyRecord.name,
         created_at: keyRecord.created_at,
         last_used: keyRecord.last_used,
@@ -226,9 +189,7 @@ export class AdminController {
         usage_count: keyRecord.usage_count,
       };
 
-      res.json(
-        new ApiResponseSuccess(response, "API key details retrieved successfully"),
-      );
+      res.json(new ApiResponseSuccess(response, 'API key details retrieved successfully'));
     } catch (error) {
       next(error);
     }
@@ -240,11 +201,7 @@ export class AdminController {
    * Params: { key: string }
    * Body: { name?: string, is_active?: boolean }
    */
-  static async updateKey(
-    req: Request,
-    res: Response,
-    next: NextFunction,
-  ): Promise<void> {
+  static async updateKey(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       let { key } = req.params;
 
@@ -253,10 +210,10 @@ export class AdminController {
         key = key[0];
       }
 
-      if (!key || typeof key !== "string" || key.trim().length === 0) {
-        throw new ValidationError("Invalid API key", {
-          field: "key",
-          message: "API key is required in URL path",
+      if (!key || typeof key !== 'string' || key.trim().length === 0) {
+        throw new ValidationError('Invalid API key', {
+          field: 'key',
+          message: 'API key is required in URL path',
         });
       }
 
@@ -264,14 +221,14 @@ export class AdminController {
 
       const keyRecord = ApiKeysRepository.findByKey(key);
       if (!keyRecord) {
-        throw new NotFoundError("API key not found", {
-          key: key.substring(0, 4) + "...",
+        throw new NotFoundError('API key not found', {
+          key: key.substring(0, 4) + '...',
         });
       }
 
       // TODO: Implement update logic
-      throw new ApiError("Update not implemented yet", 501, "NOT_IMPLEMENTED", {
-        feature: "Update API key",
+      throw new ApiError('Update not implemented yet', 501, 'NOT_IMPLEMENTED', {
+        feature: 'Update API key',
       });
     } catch (error) {
       next(error);

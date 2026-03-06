@@ -9,11 +9,11 @@ export class ApiError extends Error {
   constructor(
     message: string,
     statusCode: number = 500,
-    code: string = "INTERNAL_ERROR",
-    details?: Record<string, unknown>
+    code: string = 'INTERNAL_ERROR',
+    details?: Record<string, unknown>,
   ) {
     super(message);
-    this.name = "ApiError";
+    this.name = 'ApiError';
     this.statusCode = statusCode;
     this.code = code;
     this.details = details;
@@ -25,7 +25,7 @@ export class ApiError extends Error {
  */
 export class ValidationError extends ApiError {
   constructor(message: string, details?: Record<string, unknown>) {
-    super(message, 400, "VALIDATION_ERROR", details);
+    super(message, 400, 'VALIDATION_ERROR', details);
   }
 }
 
@@ -33,11 +33,8 @@ export class ValidationError extends ApiError {
  * Authentication error
  */
 export class AuthError extends ApiError {
-  constructor(
-    message: string = "Unauthorized",
-    details?: Record<string, unknown>
-  ) {
-    super(message, 401, "AUTH_ERROR", details);
+  constructor(message: string = 'Unauthorized', details?: Record<string, unknown>) {
+    super(message, 401, 'AUTH_ERROR', details);
   }
 }
 
@@ -45,11 +42,8 @@ export class AuthError extends ApiError {
  * Authorization error
  */
 export class ForbiddenError extends ApiError {
-  constructor(
-    message: string = "Forbidden",
-    details?: Record<string, unknown>
-  ) {
-    super(message, 403, "FORBIDDEN", details);
+  constructor(message: string = 'Forbidden', details?: Record<string, unknown>) {
+    super(message, 403, 'FORBIDDEN', details);
   }
 }
 
@@ -57,11 +51,8 @@ export class ForbiddenError extends ApiError {
  * Not found error
  */
 export class NotFoundError extends ApiError {
-  constructor(
-    message: string = "Not Found",
-    details?: Record<string, unknown>
-  ) {
-    super(message, 404, "NOT_FOUND", details);
+  constructor(message: string = 'Not Found', details?: Record<string, unknown>) {
+    super(message, 404, 'NOT_FOUND', details);
   }
 }
 
@@ -70,7 +61,7 @@ export class NotFoundError extends ApiError {
  */
 export class UnsupportedFileTypeError extends ApiError {
   constructor(message: string, details?: Record<string, unknown>) {
-    super(message, 400, "UNSUPPORTED_FILE_TYPE", details);
+    super(message, 400, 'UNSUPPORTED_FILE_TYPE', details);
   }
 }
 
@@ -79,6 +70,6 @@ export class UnsupportedFileTypeError extends ApiError {
  */
 export class FileTooLargeError extends ApiError {
   constructor(message: string, details?: Record<string, unknown>) {
-    super(message, 413, "FILE_TOO_LARGE", details);
+    super(message, 413, 'FILE_TOO_LARGE', details);
   }
 }

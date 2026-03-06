@@ -1,7 +1,7 @@
-import Database from "better-sqlite3";
-import path from "node:path";
-import type { ApiKeyRecord } from "../types";
-import { config } from "../config";
+import Database from 'better-sqlite3';
+import path from 'node:path';
+import type { ApiKeyRecord } from '../types';
+import { config } from '../config';
 
 const dbPath = path.resolve(process.cwd(), config.db.path);
 const db = new Database(dbPath);
@@ -29,7 +29,7 @@ export class ApiKeysRepository {
    * Get API key record by key value
    */
   static findByKey(key: string): ApiKeyRecord | undefined {
-    const stmt = db.prepare("SELECT * FROM api_keys WHERE key = ?");
+    const stmt = db.prepare('SELECT * FROM api_keys WHERE key = ?');
     return stmt.get(key) as ApiKeyRecord | undefined;
   }
 
@@ -37,7 +37,7 @@ export class ApiKeysRepository {
    * Get all API keys
    */
   static findAll(): ApiKeyRecord[] {
-    const stmt = db.prepare("SELECT * FROM api_keys ORDER BY created_at DESC");
+    const stmt = db.prepare('SELECT * FROM api_keys ORDER BY created_at DESC');
     return stmt.all() as ApiKeyRecord[];
   }
 
@@ -46,13 +46,11 @@ export class ApiKeysRepository {
    */
   static create(key: string, name: string): ApiKeyRecord {
     const created_at = new Date().toISOString();
-    const stmt = db.prepare(
-      "INSERT INTO api_keys (key, name, created_at) VALUES (?, ?, ?)"
-    );
+    const stmt = db.prepare('INSERT INTO api_keys (key, name, created_at) VALUES (?, ?, ?)');
     stmt.run(key, name, created_at);
 
     const result = this.findByKey(key);
-    if (!result) throw new Error("Failed to create API key");
+    if (!result) throw new Error('Failed to create API key');
     return result;
   }
 
@@ -60,7 +58,7 @@ export class ApiKeysRepository {
    * Deactivate an API key
    */
   static deactivate(key: string): boolean {
-    const stmt = db.prepare("UPDATE api_keys SET is_active = 0 WHERE key = ?");
+    const stmt = db.prepare('UPDATE api_keys SET is_active = 0 WHERE key = ?');
     const result = stmt.run(key);
     return result.changes > 0;
   }
@@ -70,7 +68,7 @@ export class ApiKeysRepository {
    */
   static recordUsage(key: string): void {
     const stmt = db.prepare(
-      "UPDATE api_keys SET last_used = ?, usage_count = usage_count + 1 WHERE key = ?"
+      'UPDATE api_keys SET last_used = ?, usage_count = usage_count + 1 WHERE key = ?',
     );
     stmt.run(new Date().toISOString(), key);
   }
@@ -79,9 +77,7 @@ export class ApiKeysRepository {
    * Get usage statistics
    */
   static getStats(): { total: number; active: number } {
-    const stmt = db.prepare(
-      "SELECT COUNT(*) as total, SUM(is_active) as active FROM api_keys"
-    );
+    const stmt = db.prepare('SELECT COUNT(*) as total, SUM(is_active) as active FROM api_keys');
     const result = stmt.get() as { total: number; active: number | null };
     return {
       total: result.total,
@@ -94,12 +90,12 @@ export class ApiKeysRepository {
  * Ensure at least one API key exists for testing
  */
 function ensureDefaultKey() {
-  const stmt = db.prepare("SELECT COUNT(*) as count FROM api_keys");
+  const stmt = db.prepare('SELECT COUNT(*) as count FROM api_keys');
   const result = stmt.get() as { count: number };
   if (result.count === 0) {
-    const key = `wsp_${require("crypto").randomBytes(32).toString("hex")}`;
-    ApiKeysRepository.create(key, "Default Test Key");
-    console.log("✓ Created default API key for testing");
+    const key = `wsp_${require('crypto').randomBytes(32).toString('hex')}`;
+    ApiKeysRepository.create(key, 'Default Test Key');
+    console.log('✓ Created default API key for testing');
   }
 }
 

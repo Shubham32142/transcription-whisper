@@ -30,7 +30,7 @@ export interface TranscriptionRequest {
   filePath: string;
   fileName: string;
   language: string;
-  task: "transcribe" | "translate";
+  task: 'transcribe' | 'translate';
 }
 
 // API Key Types

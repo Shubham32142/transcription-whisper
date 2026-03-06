@@ -11,7 +11,7 @@ jobs:
   api-lint-and-typecheck:
     name: API - Lint & Type Check
     runs-on: ubuntu-latest
-    
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -19,18 +19,18 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
-          
+          node-version: "20"
+
       - name: Setup pnpm
         uses: pnpm/action-setup@v3
         with:
           version: 8
-          
+
       - name: Get pnpm store directory
         shell: bash
         run: |
           echo "STORE_PATH=$(pnpm store path --silent)" >> $GITHUB_ENV
-          
+
       - name: Setup pnpm cache
         uses: actions/cache@v4
         with:
@@ -59,7 +59,7 @@ jobs:
     name: API - Build & Module Check
     runs-on: ubuntu-latest
     needs: api-lint-and-typecheck
-    
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -67,8 +67,8 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
-          
+          node-version: "20"
+
       - name: Setup pnpm
         uses: pnpm/action-setup@v3
         with:
@@ -129,7 +129,7 @@ jobs:
   ml-lint-and-typecheck:
     name: ML Service - Lint & Type Check
     runs-on: ubuntu-latest
-    
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -137,8 +137,8 @@ jobs:
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.11'
-          
+          python-version: "3.11"
+
       - name: Cache pip dependencies
         uses: actions/cache@v4
         with:
@@ -174,7 +174,7 @@ jobs:
     name: ML Service - Syntax & Import Check
     runs-on: ubuntu-latest
     needs: ml-lint-and-typecheck
-    
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -182,7 +182,7 @@ jobs:
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.11'
+          python-version: "3.11"
 
       - name: Install dependencies
         run: |
@@ -199,7 +199,7 @@ jobs:
           python -c "
           import sys
           import importlib.util
-          
+
           # Test main module can be imported
           spec = importlib.util.spec_from_file_location('main', 'main.py')
           if spec is None:
@@ -213,7 +213,7 @@ jobs:
     name: All Checks Passed
     runs-on: ubuntu-latest
     needs: [api-build-test, ml-syntax-check]
-    
+
     steps:
       - name: Success
         run: |

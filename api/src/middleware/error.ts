@@ -1,46 +1,37 @@
-import { Request, Response, NextFunction } from "express";
-import { ApiResponseError } from "../utils/response";
-import { ApiError } from "../utils/error";
+import { Request, Response, NextFunction } from 'express';
+import { ApiResponseError } from '../utils/response';
+import { ApiError } from '../utils/error';
 
 /**
  * Global Error Handling Middleware
  * Catches all errors thrown in route handlers and formats responses
  * Must be registered LAST in the middleware chain
  */
-export function errorHandler(
-  err: unknown,
-  req: Request,
-  res: Response,
-  next: NextFunction,
-): void {
+export function errorHandler(err: unknown, req: Request, res: Response, next: NextFunction): void {
   // Log error for debugging
-  console.error("Error caught by error handler:", {
+  console.error('Error caught by error handler:', {
     message: err instanceof Error ? err.message : String(err),
-    type: err instanceof ApiError ? "ApiError" : typeof err,
+    type: err instanceof ApiError ? 'ApiError' : typeof err,
     stack: err instanceof Error ? err.stack : undefined,
   });
 
   // Handle custom ApiError instances
   if (err instanceof ApiError) {
-    const errorResponse = new ApiResponseError(
-      err.code,
-      err.message,
-      err.details,
-    );
+    const errorResponse = new ApiResponseError(err.code, err.message, err.details);
 
     res.status(err.statusCode).json(errorResponse);
     return;
   }
 
   // Handle multer file upload errors
-  if (err && typeof err === "object" && "code" in err) {
+  if (err && typeof err === 'object' && 'code' in err) {
     const error = err as any;
 
     // Multer file size limit error
-    if (error.code === "LIMIT_FILE_SIZE") {
+    if (error.code === 'LIMIT_FILE_SIZE') {
       const errorResponse = new ApiResponseError(
-        "FILE_TOO_LARGE",
-        "File size exceeds the maximum allowed limit",
+        'FILE_TOO_LARGE',
+        'File size exceeds the maximum allowed limit',
         { maxSize: error.limit, receivedSize: error.size },
       );
       res.status(413).json(errorResponse);
@@ -48,10 +39,10 @@ export function errorHandler(
     }
 
     // Multer unexpected file error
-    if (error.code === "LIMIT_UNEXPECTED_FILE") {
+    if (error.code === 'LIMIT_UNEXPECTED_FILE') {
       const errorResponse = new ApiResponseError(
-        "INVALID_UPLOAD",
-        "Unexpected file field in multipart request",
+        'INVALID_UPLOAD',
+        'Unexpected file field in multipart request',
         { field: error.field },
       );
       res.status(400).json(errorResponse);
@@ -59,10 +50,10 @@ export function errorHandler(
     }
 
     // Multer invalid field name
-    if (error.code === "LIMIT_PART_COUNT") {
+    if (error.code === 'LIMIT_PART_COUNT') {
       const errorResponse = new ApiResponseError(
-        "INVALID_UPLOAD",
-        "Too many parts in multipart request",
+        'INVALID_UPLOAD',
+        'Too many parts in multipart request',
       );
       res.status(400).json(errorResponse);
       return;
@@ -72,21 +63,21 @@ export function errorHandler(
   // Handle standard Error instances
   if (err instanceof Error) {
     let statusCode = 500;
-    let errorCode = "INTERNAL_SERVER_ERROR";
-    let message = err.message || "An unexpected error occurred";
+    let errorCode = 'INTERNAL_SERVER_ERROR';
+    let message = err.message || 'An unexpected error occurred';
 
     // Parse specific error messages for better error codes
-    if (message.includes("ENOENT")) {
-      errorCode = "FILE_NOT_FOUND";
+    if (message.includes('ENOENT')) {
+      errorCode = 'FILE_NOT_FOUND';
       statusCode = 404;
-    } else if (message.includes("EACCES")) {
-      errorCode = "PERMISSION_DENIED";
+    } else if (message.includes('EACCES')) {
+      errorCode = 'PERMISSION_DENIED';
       statusCode = 403;
-    } else if (message.includes("timeout")) {
-      errorCode = "REQUEST_TIMEOUT";
+    } else if (message.includes('timeout')) {
+      errorCode = 'REQUEST_TIMEOUT';
       statusCode = 408;
-    } else if (message.toLowerCase().includes("validation")) {
-      errorCode = "VALIDATION_ERROR";
+    } else if (message.toLowerCase().includes('validation')) {
+      errorCode = 'VALIDATION_ERROR';
       statusCode = 400;
     }
 
@@ -96,10 +87,7 @@ export function errorHandler(
   }
 
   // Fallback for completely unknown errors
-  const errorResponse = new ApiResponseError(
-    "UNKNOWN_ERROR",
-    "An unexpected error occurred",
-  );
+  const errorResponse = new ApiResponseError('UNKNOWN_ERROR', 'An unexpected error occurred');
   res.status(500).json(errorResponse);
 }
 
@@ -107,13 +95,9 @@ export function errorHandler(
  * 404 Not Found Middleware
  * Should be registered after all route handlers
  */
-export function notFoundHandler(
-  req: Request,
-  res: Response,
-  next: NextFunction,
-): void {
+export function notFoundHandler(req: Request, res: Response, next: NextFunction): void {
   const errorResponse = new ApiResponseError(
-    "NOT_FOUND",
+    'NOT_FOUND',
     `Route not found: ${req.method} ${req.path}`,
     { method: req.method, path: req.path },
   );
@@ -124,11 +108,7 @@ export function notFoundHandler(
 /**
  * Request logging middleware
  */
-export function requestLogger(
-  req: Request,
-  res: Response,
-  next: NextFunction,
-): void {
+export function requestLogger(req: Request, res: Response, next: NextFunction): void {
   const start = Date.now();
 
   // Capture response status
@@ -143,7 +123,7 @@ export function requestLogger(
       status: res.statusCode,
       duration: `${duration}ms`,
       ip: req.ip,
-      userAgent: req.get("user-agent"),
+      userAgent: req.get('user-agent'),
     });
 
     return originalJson(body);

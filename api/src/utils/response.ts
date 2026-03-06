@@ -1,4 +1,4 @@
-import type { ApiErrorDetail, ApiResponse } from "../types";
+import type { ApiErrorDetail, ApiResponse } from '../types';
 
 /**
  * Standardized API Response Success wrapper
