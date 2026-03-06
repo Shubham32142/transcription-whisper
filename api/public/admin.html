@@ -1,0 +1,143 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Admin - API Key Management</title>
+    <link rel="stylesheet" href="/admin.css" />
+    <script src="https://unpkg.com/lucide@latest"></script>
+  </head>
+  <body>
+    <div class="container">
+      <header>
+        <div class="header-content">
+          <i data-lucide="shield" class="header-icon"></i>
+          <h1>Admin Panel</h1>
+        </div>
+        <p>API Key Management</p>
+        <a href="/" class="back-link">
+          <i data-lucide="arrow-left" class="back-icon"></i> Back to App
+        </a>
+      </header>
+
+      <main>
+        <!-- Login Section (shown if not authenticated) -->
+        <section id="loginSection" class="doc-section">
+          <h2><i data-lucide="lock" class="section-icon"></i> Admin Login</h2>
+          <div class="login-form">
+            <input
+              type="password"
+              id="adminKeyInput"
+              placeholder="Enter admin key"
+              class="admin-input"
+            />
+            <button onclick="login()" class="btn btn-primary">
+              <i data-lucide="log-in" class="btn-icon"></i> Login
+            </button>
+          </div>
+          <p class="note">
+            <i data-lucide="info" class="note-icon"></i>
+            <strong>Default admin key:</strong> admin_secret_key (Change this in
+            production!)
+          </p>
+        </section>
+
+        <!-- Admin Dashboard (hidden until authenticated) -->
+        <div id="dashboard" class="hidden">
+          <!-- Stats Section -->
+          <section class="stats-section">
+            <div class="stat-card">
+              <i data-lucide="key" class="stat-icon"></i>
+              <div>
+                <h3 id="totalKeys">0</h3>
+                <p>Total Keys</p>
+              </div>
+            </div>
+            <div class="stat-card">
+              <i data-lucide="check-circle" class="stat-icon"></i>
+              <div>
+                <h3 id="activeKeys">0</h3>
+                <p>Active Keys</p>
+              </div>
+            </div>
+            <div class="stat-card">
+              <i data-lucide="file-text" class="stat-icon"></i>
+              <div>
+                <h3 id="totalTranscriptions">0</h3>
+                <p>Transcriptions</p>
+              </div>
+            </div>
+          </section>
+
+          <!-- Create Key Section -->
+          <section class="doc-section">
+            <h2>
+              <i data-lucide="plus-circle" class="section-icon"></i> Create New
+              API Key
+            </h2>
+            <div class="create-form">
+              <input
+                type="text"
+                id="keyName"
+                placeholder="Enter key name (e.g., Production App)"
+                class="key-name-input"
+              />
+              <button onclick="createKey()" class="btn btn-success">
+                <i data-lucide="plus" class="btn-icon"></i> Generate Key
+              </button>
+            </div>
+          </section>
+
+          <!-- API Keys List -->
+          <section class="doc-section">
+            <h2>
+              <i data-lucide="list" class="section-icon"></i> API Keys
+              <button onclick="loadKeys()" class="btn-refresh">
+                <i data-lucide="refresh-cw" class="btn-icon"></i>
+              </button>
+            </h2>
+            <div id="keysList" class="keys-list"></div>
+          </section>
+        </div>
+      </main>
+
+      <footer>
+        <p>WhisperSelf © 2026 | Admin Panel</p>
+      </footer>
+    </div>
+
+    <div id="toast" class="toast"></div>
+
+    <!-- Modal for showing new key -->
+    <div id="keyModal" class="modal hidden">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h3>
+            <i data-lucide="check-circle" class="modal-icon"></i> API Key
+            Created!
+          </h3>
+        </div>
+        <div class="modal-body">
+          <p class="modal-warning">
+            <i data-lucide="alert-triangle" class="warning-icon"></i>
+            <strong>Important:</strong> Copy this key now. You won't be able to
+            see it again!
+          </p>
+          <div class="key-display">
+            <code id="newKeyValue"></code>
+            <button onclick="copyNewKey()" class="btn-copy">
+              <i data-lucide="copy" class="btn-icon"></i> Copy
+            </button>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button onclick="closeModal()" class="btn btn-primary">
+            Got it!
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <script src="/admin.js"></script>
+  </body>
+</html>

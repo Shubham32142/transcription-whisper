@@ -1,0 +1,20 @@
+model_name: large-v3
+model_path: ../models/large-v3
+language: en
+task: transcribe
+beam_size: 5
+device: cpu
+compute_type: int8
+vad_filter: true
+
+finetune:
+  model_name: openai/whisper-small
+  language: Hindi
+  task: transcribe
+  num_train_epochs: 10
+  per_device_train_batch_size: 8
+  gradient_accumulation_steps: 2
+  learning_rate: 1e-5
+  warmup_steps: 500
+  fp16: false
+  generation_max_length: 225

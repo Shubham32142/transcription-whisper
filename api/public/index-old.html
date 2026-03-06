@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>WhisperSelf - Speech to Text</title>
+    <link rel="stylesheet" href="/style.css" />
+    <script src="https://unpkg.com/lucide@latest"></script>
+  </head>
+  <body>
+    <div class="container">
+      <header>
+            <div class="header-content">
+                <i data-lucide="mic" class="header-icon"></i>
+                <h1>WhisperSelf</h1>
+            </div>
+            <a href="/developer.html" class="dev-link">
+              <i data-lucide="code" class="dev-icon"></i> API Documentation
+            </a>
+      </header>
+
+      <main>
+        <!-- Upload Section -->
+        <section class="upload-section">
+          <h2><i data-lucide="upload" class="section-icon"></i> Upload Audio File</h2>
+          <div class="upload-area" id="uploadArea">
+            <i data-lucide="cloud-upload" class="upload-icon"></i>
+            <h3>Drag and drop your audio file here</h3>
+            <p>or click to select a file</p>
+            <input type="file" id="fileInput" accept="audio/*,video/*" hidden />
+          </div>
+          <div id="fileInfo" class="file-info hidden">
+            <p id="fileName"></p>
+            <p id="fileSize"></p>
+          </div>
+        </section>
+
+        <!-- Voice Recording Section -->
+        <section class="voice-section">
+          <h2><i data-lucide="mic" class="section-icon"></i> Record Voice</h2>
+          <div class="recording-controls">
+            <button id="recordBtn" class="btn btn-primary">
+              <i data-lucide="mic" class="btn-icon"></i> Start Recording
+            </button>
+            <div id="timer" class="timer hidden">00:00</div>
+          </div>
+          <div id="waveform" class="waveform hidden"></div>
+        </section>
+
+        <!-- Options Section -->
+        <section class="options-section">
+          <h2><i data-lucide="settings" class="section-icon"></i> Options</h2>
+          <div class="option-group">
+            <label for="language">Language:</label>
+            <select id="language">
+              <option value="auto">Auto Detect</option>
+              <option value="en">English</option>
+              <option value="es">Spanish</option>
+              <option value="fr">French</option>
+              <option value="de">German</option>
+              <option value="it">Italian</option>
+              <option value="pt">Portuguese</option>
+              <option value="ru">Russian</option>
+              <option value="ja">Japanese</option>
+              <option value="ko">Korean</option>
+              <option value="zh">Chinese</option>
+              <option value="hi">Hindi</option>
+              <option value="ar">Arabic</option>
+            </select>
+          </div>
+
+          <div class="option-group">
+            <label for="task">Task:</label>
+            <select id="task">
+              <option value="transcribe">Transcribe</option>
+              <option value="translate">Translate to English</option>
+            </select>
+          </div>
+        </section>
+
+        <!-- Submit Section -->
+        <section class="submit-section">
+          <button id="submitBtn" class="btn btn-success" disabled>
+            Start Transcription
+          </button>
+          <p id="limitInfo" class="limit-info"></p>
+        </section>
+
+        <!-- Loading Section -->
+        <div id="loadingSection" class="loading-section hidden">
+          <div class="spinner"></div>
+          <p>Transcribing your audio...</p>
+        </div>
+
+        <!-- Results Section -->
+        <section id="resultsSection" class="results-section hidden">
+          <h2><i data-lucide="file-text" class="section-icon"></i> Transcription Results</h2>
+          <div id="results" class="results"></div>
+          <div class="results-actions">
+            <button id="copyBtn" class="btn btn-secondary"><i data-lucide="copy" class="btn-icon"></i> Copy Text</button>
+            <button id="downloadBtn" class="btn btn-secondary">
+              <i data-lucide="download" class="btn-icon"></i> Download
+            </button>
+            <button id="newBtn" class="btn btn-secondary">
+              <i data-lucide="refresh-cw" class="btn-icon"></i> New Transcription
+            </button>
+          </div>
+        </section>
+
+        <!-- History Section -->
+        <section id="historySection" class="history-section">
+          <h2><i data-lucide="history" class="section-icon"></i> Recent Transcriptions</h2>
+          <div id="history" class="history-list"></div>
+        </section>
+      </main>
+
+      <footer>
+        <p>WhisperSelf © 2026 | Built with faster-whisper | <a href="/developer.html" class="footer-link">API Docs</a></p>
+      </footer>
+    </div>
+
+    <div id="toast" class="toast"></div>
+    <script src="/app.js"></script>
+  </body>
+</html>

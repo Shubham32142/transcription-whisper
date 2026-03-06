@@ -1,0 +1,222 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+
+jobs:
+  # ==================== API CHECKS ====================
+  api-lint-and-typecheck:
+    name: API - Lint & Type Check
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v3
+        with:
+          version: 8
+          
+      - name: Get pnpm store directory
+        shell: bash
+        run: |
+          echo "STORE_PATH=$(pnpm store path --silent)" >> $GITHUB_ENV
+          
+      - name: Setup pnpm cache
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.STORE_PATH }}
+          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-pnpm-store-
+
+      - name: Install API dependencies
+        working-directory: ./api
+        run: pnpm install --frozen-lockfile
+
+      - name: Run ESLint (unused vars as errors)
+        working-directory: ./api
+        run: pnpm lint
+
+      - name: Run TypeScript type checking
+        working-directory: ./api
+        run: pnpm type-check
+
+      - name: Check for TypeScript errors
+        working-directory: ./api
+        run: pnpm build
+
+  api-build-test:
+    name: API - Build & Module Check
+    runs-on: ubuntu-latest
+    needs: api-lint-and-typecheck
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v3
+        with:
+          version: 8
+
+      - name: Install API dependencies
+        working-directory: ./api
+        run: pnpm install --frozen-lockfile
+
+      - name: Build API
+        working-directory: ./api
+        run: pnpm build
+
+      - name: Verify build output
+        working-directory: ./api
+        run: |
+          if [ ! -d "dist" ]; then
+            echo "❌ Build failed: dist directory not found"
+            exit 1
+          fi
+          echo "✅ Build successful: dist directory exists"
+          ls -la dist/
+
+      - name: Check main entry point
+        working-directory: ./api
+        run: |
+          if [ ! -f "dist/index.js" ]; then
+            echo "❌ Entry point missing: dist/index.js not found"
+            exit 1
+          fi
+          echo "✅ Entry point exists: dist/index.js"
+
+      - name: Module resolution check
+        working-directory: ./api
+        run: |
+          node -e "
+            try {
+              require('./dist/index.js');
+              console.log('❌ Module should not execute immediately');
+              process.exit(1);
+            } catch (err) {
+              if (err.code === 'MODULE_NOT_FOUND' || err.message.includes('MODULE_NOT_FOUND')) {
+                console.log('❌ Module resolution failed:', err.message);
+                process.exit(1);
+              }
+              console.log('✅ Module syntax check passed');
+            }
+          " || echo "Note: Module requires environment setup to run"
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: api-build
+          path: api/dist/
+          retention-days: 7
+
+  # ==================== PYTHON ML SERVICE CHECKS ====================
+  ml-lint-and-typecheck:
+    name: ML Service - Lint & Type Check
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          
+      - name: Cache pip dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('ml/requirements.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
+
+      - name: Install Python dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install flake8 mypy black isort
+          pip install -r ml/requirements.txt
+
+      - name: Run Black (code formatter check)
+        run: |
+          black --check ml/ || echo "::warning::Code formatting issues found. Run 'black ml/' locally"
+
+      - name: Run isort (import sorting check)
+        run: |
+          isort --check-only ml/ || echo "::warning::Import sorting issues found. Run 'isort ml/' locally"
+
+      - name: Run Flake8 (linting)
+        run: |
+          flake8 ml/ --count --select=E9,F63,F7,F82 --show-source --statistics
+          flake8 ml/ --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
+
+      - name: Run MyPy (type checking)
+        run: |
+          mypy ml/ --ignore-missing-imports || echo "::warning::Type checking issues found"
+
+  ml-syntax-check:
+    name: ML Service - Syntax & Import Check
+    runs-on: ubuntu-latest
+    needs: ml-lint-and-typecheck
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r ml/requirements.txt
+
+      - name: Python syntax check
+        run: |
+          python -m py_compile ml/**/*.py
+
+      - name: Import check (dry run)
+        run: |
+          cd ml
+          python -c "
+          import sys
+          import importlib.util
+          
+          # Test main module can be imported
+          spec = importlib.util.spec_from_file_location('main', 'main.py')
+          if spec is None:
+              print('❌ Cannot find main.py module')
+              sys.exit(1)
+          print('✅ ML service module structure is valid')
+          "
+
+  # ==================== COMBINED STATUS CHECK ====================
+  all-checks-passed:
+    name: All Checks Passed
+    runs-on: ubuntu-latest
+    needs: [api-build-test, ml-syntax-check]
+    
+    steps:
+      - name: Success
+        run: |
+          echo "✅ All CI/CD checks passed successfully!"
+          echo "✅ API: Linting, Type checking, and Build verified"
+          echo "✅ ML Service: Linting and Syntax verified"

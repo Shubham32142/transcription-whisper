@@ -1,0 +1,38 @@
+version: "3.9"
+
+services:
+  ml:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.ml
+    container_name: whisper-self-ml
+    environment:
+      MODEL_PATH: /models/large-v3
+      WHISPER_DEVICE: cpu
+      WHISPER_COMPUTE_TYPE: int8
+      WHISPER_LANGUAGE: en
+      WHISPER_TASK: transcribe
+      WHISPER_BEAM_SIZE: 5
+    volumes:
+      - ../models:/models
+    ports:
+      - "8000:8000"
+
+  api:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.api
+    container_name: whisper-self-api
+    environment:
+      PORT: 3000
+      API_KEY: your_secret_api_key_here
+      ML_SERVICE_URL: http://ml:8000
+      MAX_FILE_SIZE_MB: 25
+      ALLOWED_AUDIO_TYPES: audio/mpeg,audio/wav,audio/webm,audio/mp4,audio/ogg
+      UPLOAD_DIR: /uploads
+    volumes:
+      - ../uploads:/uploads
+    depends_on:
+      - ml
+    ports:
+      - "3000:3000"

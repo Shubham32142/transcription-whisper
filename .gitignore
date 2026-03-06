@@ -1,0 +1,13 @@
+node_modules/
+dist/
+uploads/*
+!uploads/.gitkeep
+models/*
+!models/.gitkeep
+*.pyc
+__pycache__/
+.env
+*.egg-info/
+processed_dataset/
+fine_tuned_model/
+.env.local

@@ -1,0 +1,408 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>WhisperSelf API Documentation</title>
+    <link rel="stylesheet" href="/developer.css" />
+    <script src="https://unpkg.com/lucide@latest"></script>
+  </head>
+  <body>
+    <div class="container">
+      <header>
+        <div class="header-content">
+          <i data-lucide="code" class="header-icon"></i>
+          <h1>WhisperSelf API</h1>
+        </div>
+        <p>Developer Documentation</p>
+        <a href="/" class="back-link">
+          <i data-lucide="arrow-left" class="back-icon"></i> Back to App
+        </a>
+      </header>
+
+      <main>
+        <!-- Overview -->
+        <section class="doc-section">
+          <h2><i data-lucide="book-open" class="section-icon"></i> Overview</h2>
+          <p>
+            WhisperSelf provides a simple REST API for speech-to-text
+            transcription. Integrate it into your applications to add powerful
+            voice transcription capabilities.
+          </p>
+          <div class="info-box">
+            <i data-lucide="info" class="info-icon"></i>
+            <div>
+              <strong>Base URL:</strong>
+              <code class="inline-code" id="baseUrl"
+                >http://localhost:3000</code
+              >
+            </div>
+          </div>
+        </section>
+
+        <!-- Authentication -->
+        <section class="doc-section">
+          <h2><i data-lucide="key" class="section-icon"></i> Authentication</h2>
+          <p>All API requests require an API key in the request headers:</p>
+          <div class="code-block">
+            <div class="code-header">
+              <span>HTTP Header</span>
+              <button
+                class="copy-btn"
+                onclick="copyCode(this, 'x-api-key: YOUR_API_KEY')"
+              >
+                <i data-lucide="copy" class="btn-icon"></i> Copy
+              </button>
+            </div>
+            <pre><code>x-api-key: YOUR_API_KEY</code></pre>
+          </div>
+          <p class="note">
+            <i data-lucide="alert-circle" class="note-icon"></i>
+            <strong>Note:</strong> Contact your administrator to obtain an API
+            key.
+          </p>
+        </section>
+
+        <!-- Endpoints -->
+        <section class="doc-section">
+          <h2>
+            <i data-lucide="server" class="section-icon"></i> API Endpoints
+          </h2>
+
+          <!-- Health Check -->
+          <div class="endpoint">
+            <div class="endpoint-header">
+              <span class="method method-get">GET</span>
+              <span class="path">/health</span>
+            </div>
+            <p>Check if the API is running.</p>
+            <h4>Response</h4>
+            <div class="code-block">
+              <div class="code-header">
+                <span>JSON Response</span>
+                <button
+                  class="copy-btn"
+                  onclick="copyCode(this, healthResponse)"
+                >
+                  <i data-lucide="copy" class="btn-icon"></i> Copy
+                </button>
+              </div>
+              <pre><code>{
+  "success": true,
+  "status": "ok"
+}</code></pre>
+            </div>
+          </div>
+
+          <!-- Config -->
+          <div class="endpoint">
+            <div class="endpoint-header">
+              <span class="method method-get">GET</span>
+              <span class="path">/api/config</span>
+            </div>
+            <p>Get server configuration and limits. Requires authentication.</p>
+            <h4>Response</h4>
+            <div class="code-block">
+              <div class="code-header">
+                <span>JSON Response</span>
+                <button
+                  class="copy-btn"
+                  onclick="copyCode(this, configResponse)"
+                >
+                  <i data-lucide="copy" class="btn-icon"></i> Copy
+                </button>
+              </div>
+              <pre><code>{
+  "maxFileSizeMB": 100,
+  "allowedTypes": [
+    "audio/mpeg",
+    "audio/wav",
+    "audio/webm",
+    "audio/mp4",
+    "audio/ogg"
+  ]
+}</code></pre>
+            </div>
+          </div>
+
+          <!-- Transcribe -->
+          <div class="endpoint">
+            <div class="endpoint-header">
+              <span class="method method-post">POST</span>
+              <span class="path">/transcribe</span>
+            </div>
+            <p>Transcribe audio or video files to text.</p>
+
+            <h4>Request</h4>
+            <p>Send a multipart/form-data request with the following fields:</p>
+            <table class="params-table">
+              <thead>
+                <tr>
+                  <th>Parameter</th>
+                  <th>Type</th>
+                  <th>Required</th>
+                  <th>Description</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><code>file</code></td>
+                  <td>File</td>
+                  <td>Yes</td>
+                  <td>Audio or video file to transcribe</td>
+                </tr>
+                <tr>
+                  <td><code>language</code></td>
+                  <td>String</td>
+                  <td>No</td>
+                  <td>
+                    Language code (e.g., "en", "es", "fr"). Default: "auto"
+                  </td>
+                </tr>
+                <tr>
+                  <td><code>task</code></td>
+                  <td>String</td>
+                  <td>No</td>
+                  <td>"transcribe" or "translate". Default: "transcribe"</td>
+                </tr>
+              </tbody>
+            </table>
+
+            <h4>Response</h4>
+            <div class="code-block">
+              <div class="code-header">
+                <span>JSON Response</span>
+                <button
+                  class="copy-btn"
+                  onclick="copyCode(this, transcribeResponse)"
+                >
+                  <i data-lucide="copy" class="btn-icon"></i> Copy
+                </button>
+              </div>
+              <pre><code>{
+  "success": true,
+  "transcript": "Hello, this is a test transcription.",
+  "language": "en",
+  "duration": 5.23,
+  "segments": [
+    {
+      "start": 0.0,
+      "end": 5.23,
+      "text": "Hello, this is a test transcription."
+    }
+  ]
+}</code></pre>
+            </div>
+          </div>
+        </section>
+
+        <!-- Code Examples -->
+        <section class="doc-section">
+          <h2>
+            <i data-lucide="code-2" class="section-icon"></i> Code Examples
+          </h2>
+
+          <!-- cURL -->
+          <div class="example">
+            <h3>cURL</h3>
+            <div class="code-block">
+              <div class="code-header">
+                <span>Bash</span>
+                <button class="copy-btn" onclick="copyCode(this, curlExample)">
+                  <i data-lucide="copy" class="btn-icon"></i> Copy
+                </button>
+              </div>
+              <pre><code>curl -X POST http://localhost:3000/transcribe \
+  -H "x-api-key: YOUR_API_KEY" \
+  -F "file=@/path/to/audio.mp3" \
+  -F "language=auto" \
+  -F "task=transcribe"</code></pre>
+            </div>
+          </div>
+
+          <!-- Python -->
+          <div class="example">
+            <h3>Python (requests)</h3>
+            <div class="code-block">
+              <div class="code-header">
+                <span>Python</span>
+                <button
+                  class="copy-btn"
+                  onclick="copyCode(this, pythonExample)"
+                >
+                  <i data-lucide="copy" class="btn-icon"></i> Copy
+                </button>
+              </div>
+              <pre><code>import requests
+
+url = "http://localhost:3000/transcribe"
+headers = {"x-api-key": "YOUR_API_KEY"}
+files = {"file": open("audio.mp3", "rb")}
+data = {"language": "auto", "task": "transcribe"}
+
+response = requests.post(url, headers=headers, files=files, data=data)
+result = response.json()
+print(result["transcript"])</code></pre>
+            </div>
+          </div>
+
+          <!-- JavaScript -->
+          <div class="example">
+            <h3>JavaScript (Node.js)</h3>
+            <div class="code-block">
+              <div class="code-header">
+                <span>JavaScript</span>
+                <button
+                  class="copy-btn"
+                  onclick="copyCode(this, jsNodeExample)"
+                >
+                  <i data-lucide="copy" class="btn-icon"></i> Copy
+                </button>
+              </div>
+              <pre><code>const FormData = require('form-data');
+const fs = require('fs');
+const axios = require('axios');
+
+const form = new FormData();
+form.append('file', fs.createReadStream('audio.mp3'));
+form.append('language', 'auto');
+form.append('task', 'transcribe');
+
+axios.post('http://localhost:3000/transcribe', form, {
+  headers: {
+    ...form.getHeaders(),
+    'x-api-key': 'YOUR_API_KEY'
+  }
+})
+.then(response => console.log(response.data.transcript))
+.catch(error => console.error(error));</code></pre>
+            </div>
+          </div>
+
+          <!-- JavaScript Fetch -->
+          <div class="example">
+            <h3>JavaScript (Browser)</h3>
+            <div class="code-block">
+              <div class="code-header">
+                <span>JavaScript</span>
+                <button
+                  class="copy-btn"
+                  onclick="copyCode(this, jsBrowserExample)"
+                >
+                  <i data-lucide="copy" class="btn-icon"></i> Copy
+                </button>
+              </div>
+              <pre><code>const formData = new FormData();
+formData.append('file', fileInput.files[0]);
+formData.append('language', 'auto');
+formData.append('task', 'transcribe');
+
+fetch('http://localhost:3000/transcribe', {
+  method: 'POST',
+  headers: {
+    'x-api-key': 'YOUR_API_KEY'
+  },
+  body: formData
+})
+.then(response => response.json())
+.then(data => console.log(data.transcript))
+.catch(error => console.error(error));</code></pre>
+            </div>
+          </div>
+        </section>
+
+        <!-- Rate Limits -->
+        <section class="doc-section">
+          <h2><i data-lucide="gauge" class="section-icon"></i> Rate Limits</h2>
+          <div class="info-box">
+            <i data-lucide="clock" class="info-icon"></i>
+            <div>
+              <strong>Transcription Endpoint:</strong> 10 requests per minute
+            </div>
+          </div>
+          <p>
+            If you exceed the rate limit, you'll receive a 429 (Too Many
+            Requests) response. Wait for the rate limit window to reset before
+            making additional requests.
+          </p>
+        </section>
+
+        <!-- Supported Formats -->
+        <section class="doc-section">
+          <h2>
+            <i data-lucide="file-audio" class="section-icon"></i> Supported
+            Formats
+          </h2>
+          <div class="format-grid">
+            <div class="format-card">
+              <i data-lucide="file-audio" class="format-icon"></i>
+              <h4>Audio</h4>
+              <p>MP3, WAV, OGG, WebM, M4A, AAC</p>
+            </div>
+            <div class="format-card">
+              <i data-lucide="video" class="format-icon"></i>
+              <h4>Video</h4>
+              <p>MP4, WebM, AVI, MOV</p>
+            </div>
+          </div>
+          <p class="note">
+            <i data-lucide="info" class="note-icon"></i>
+            <strong>Note:</strong> Video files are automatically processed to
+            extract audio. Maximum file size is configurable (default: 100MB).
+          </p>
+        </section>
+
+        <!-- Error Handling -->
+        <section class="doc-section">
+          <h2>
+            <i data-lucide="alert-triangle" class="section-icon"></i> Error
+            Handling
+          </h2>
+          <table class="params-table">
+            <thead>
+              <tr>
+                <th>Status Code</th>
+                <th>Error</th>
+                <th>Description</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><code>400</code></td>
+                <td>Bad Request</td>
+                <td>Invalid file format or missing required fields</td>
+              </tr>
+              <tr>
+                <td><code>401</code></td>
+                <td>Unauthorized</td>
+                <td>Missing or invalid API key</td>
+              </tr>
+              <tr>
+                <td><code>413</code></td>
+                <td>Payload Too Large</td>
+                <td>File size exceeds maximum limit</td>
+              </tr>
+              <tr>
+                <td><code>429</code></td>
+                <td>Too Many Requests</td>
+                <td>Rate limit exceeded</td>
+              </tr>
+              <tr>
+                <td><code>500</code></td>
+                <td>Internal Server Error</td>
+                <td>Transcription service error</td>
+              </tr>
+            </tbody>
+          </table>
+        </section>
+      </main>
+
+      <footer>
+        <p>WhisperSelf © 2026 | Built with faster-whisper</p>
+      </footer>
+    </div>
+
+    <div id="toast" class="toast"></div>
+    <script src="/developer.js"></script>
+  </body>
+</html>

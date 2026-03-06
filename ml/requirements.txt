@@ -1,0 +1,12 @@
+faster-whisper==1.1.0
+transformers>=4.40.0
+datasets>=2.18.0
+torch>=2.2.0
+torchaudio>=2.2.0
+evaluate
+jiwer
+fastapi
+uvicorn
+python-multipart
+huggingface_hub
+PyYAML
