@@ -55,8 +55,7 @@ app.use(`/transcribe`, limiter);
 // Health check (no auth required)
 app.get('/health', (req, res, next) => {
   /* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access */
-  const handler = transcribeRouter.stack
-    .find((layer: any) => layer.route?.path === '/health')
+  const handler = transcribeRouter.stack.find((layer: any) => layer.route?.path === '/health')
     ?.route?.stack?.[0]?.handle;
   /* eslint-enable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access */
   if (handler) {
@@ -69,8 +68,7 @@ app.get('/health', (req, res, next) => {
 // Public API config
 app.get('/api/config', (req, res, next) => {
   /* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access */
-  const handler = transcribeRouter.stack
-    .find((layer: any) => layer.route?.path === '/api/config')
+  const handler = transcribeRouter.stack.find((layer: any) => layer.route?.path === '/api/config')
     ?.route?.stack?.[0]?.handle;
   /* eslint-enable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access */
   if (handler) {

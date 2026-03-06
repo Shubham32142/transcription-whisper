@@ -1,8 +1,8 @@
-import Database from "better-sqlite3";
-import path from "node:path";
-import crypto from "node:crypto";
+import Database from 'better-sqlite3';
+import path from 'node:path';
+import crypto from 'node:crypto';
 
-const dbPath = path.resolve(process.cwd(), "whisperself.db");
+const dbPath = path.resolve(process.cwd(), 'whisperself.db');
 const db: Database.Database = new Database(dbPath);
 
 // Initialize database schema
@@ -34,7 +34,7 @@ db.exec(`
 
 // Generate a secure API key
 export function generateApiKey(): string {
-  return `wsp_${crypto.randomBytes(32).toString("hex")}`;
+  return `wsp_${crypto.randomBytes(32).toString('hex')}`;
 }
 
 // Create a new API key
@@ -128,14 +128,7 @@ export function logTranscription(
     VALUES (?, ?, ?, ?, ?, ?)
   `);
 
-  stmt.run(
-    apiKey,
-    filename,
-    transcript,
-    language,
-    duration,
-    new Date().toISOString(),
-  );
+  stmt.run(apiKey, filename, transcript, language, duration, new Date().toISOString());
 }
 
 // Get transcription stats
@@ -166,13 +159,13 @@ export function getStats(): {
 }
 
 // Initialize with a default test key if no keys exist
-const keyCount = db.prepare("SELECT COUNT(*) as count FROM api_keys").get() as {
+const keyCount = db.prepare('SELECT COUNT(*) as count FROM api_keys').get() as {
   count: number;
 };
 if (keyCount.count === 0) {
-  createApiKey("Default Test Key");
+  createApiKey('Default Test Key');
   // eslint-disable-next-line no-console
-  console.log("Created default API key for testing");
+  console.log('Created default API key for testing');
 }
 
 export default db;

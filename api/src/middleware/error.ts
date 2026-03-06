@@ -15,7 +15,12 @@ interface MulterError {
  * Catches all errors thrown in route handlers and formats responses
  * Must be registered LAST in the middleware chain
  */
-export function errorHandler(err: unknown, _req: Request, res: Response, _next: NextFunction): void {
+export function errorHandler(
+  err: unknown,
+  _req: Request,
+  res: Response,
+  _next: NextFunction,
+): void {
   // Log error for debugging
   console.error('Error caught by error handler:', {
     message: err instanceof Error ? err.message : String(err),

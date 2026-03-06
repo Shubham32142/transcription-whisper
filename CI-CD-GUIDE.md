@@ -7,6 +7,7 @@ This repository has automated checks configured to run **BEFORE pushing** and on
 **All checks run locally BEFORE pushing to prevent bad code from reaching GitHub!**
 
 When you run `git push`, a **pre-push hook** automatically:
+
 1. ✅ Installs dependencies
 2. ✅ Runs ESLint (unused vars = ❌ error)
 3. ✅ Runs TypeScript type checking
@@ -44,6 +45,7 @@ When you run `git push`, a **pre-push hook** automatically:
 ## Running Checks Locally
 
 ### Before Every Push (Automatic)
+
 The pre-push hook runs automatically when you push. **You don't need to do anything!**
 
 ```bash
@@ -137,6 +139,7 @@ error: failed to push some refs
 ## Bypassing Pre-Push Checks (Not Recommended)
 
 Only use this in emergencies:
+
 ```bash
 git push --no-verify
 ```

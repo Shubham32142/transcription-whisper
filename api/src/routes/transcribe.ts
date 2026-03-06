@@ -8,10 +8,16 @@ import { HealthController } from '../controllers/health.controller';
 export const transcribeRouter: ExpressRouter = Router();
 
 // Health check endpoint
-transcribeRouter.get('/health', asyncHandler((...args) => HealthController.health(...args)));
+transcribeRouter.get(
+  '/health',
+  asyncHandler((...args) => HealthController.health(...args)),
+);
 
 // Get public API configuration
-transcribeRouter.get('/api/config', asyncHandler((...args) => TranscribeController.getConfig(...args)));
+transcribeRouter.get(
+  '/api/config',
+  asyncHandler((...args) => TranscribeController.getConfig(...args)),
+);
 
 // Transcribe audio file (requires API key)
 transcribeRouter.post(
@@ -22,7 +28,15 @@ transcribeRouter.post(
 );
 
 // Get transcription by ID (placeholder)
-transcribeRouter.get('/:id', apiAuth, asyncHandler((...args) => TranscribeController.getById(...args)));
+transcribeRouter.get(
+  '/:id',
+  apiAuth,
+  asyncHandler((...args) => TranscribeController.getById(...args)),
+);
 
 // Delete transcription by ID (placeholder)
-transcribeRouter.delete('/:id', apiAuth, asyncHandler((...args) => TranscribeController.deleteById(...args)));
+transcribeRouter.delete(
+  '/:id',
+  apiAuth,
+  asyncHandler((...args) => TranscribeController.deleteById(...args)),
+);

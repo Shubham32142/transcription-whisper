@@ -1,4 +1,4 @@
-import "express";
+import 'express';
 import type { ApiKeyRecord } from './index';
 
 declare global {
