@@ -9,7 +9,7 @@ import { ApiKeysRepository } from '../repositories/apiKeys.repository';
  * Throws AuthError if key is missing or inactive
  * Throws ValidationError if API key format is invalid
  */
-export function apiAuth(req: Request, res: Response, next: NextFunction): void {
+export function apiAuth(req: Request, _res: Response, next: NextFunction): void {
   try {
     const providedApiKey = req.header('x-api-key');
 
@@ -54,7 +54,7 @@ export function apiAuth(req: Request, res: Response, next: NextFunction): void {
  * Validates X-Admin-Key header against configured admin key
  * Throws ForbiddenError if key is missing or invalid
  */
-export function adminAuth(req: Request, res: Response, next: NextFunction): void {
+export function adminAuth(req: Request, _res: Response, next: NextFunction): void {
   try {
     const providedKey = req.header('x-admin-key');
 

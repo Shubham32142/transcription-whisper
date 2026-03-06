@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import { config } from '../config';
-import { ApiResponseSuccess, ApiResponseError } from '../utils/response';
+import { ApiResponseSuccess } from '../utils/response';
 import {
   ValidationError,
   FileTooLargeError,
@@ -8,7 +8,7 @@ import {
   ApiError,
 } from '../utils/error';
 import { transcribeService } from '../services/transcriber';
-import { TranscriptionResult, TranscriptionRequest } from '../types';
+import { TranscriptionRequest } from '../types';
 
 /**
  * TranscribeController - Handles all transcription-related requests
@@ -87,10 +87,8 @@ export class TranscribeController {
       // Extract API key for usage recording (if present)
       const apiKey = (req as any).apiKey;
       if (apiKey) {
-        // Record usage - fire and forget, don't await
-        transcribeService.recordUsage(apiKey).catch((err: Error) => {
-          console.error('Failed to record API key usage:', err);
-        });
+        // Record usage - fire and forget
+        transcribeService.recordUsage(apiKey);
       }
 
       // Return success response
@@ -114,7 +112,7 @@ export class TranscribeController {
    * GET /health
    * Health check endpoint to verify API is running
    */
-  static async health(req: Request, res: Response, next: NextFunction): Promise<void> {
+  static async health(_req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       // Check ML service connectivity
       const mlServiceUrl = `${config.ml.serviceUrl}/health`;
@@ -154,7 +152,7 @@ export class TranscribeController {
    * GET /api/config
    * Get public API configuration (upload limits, supported languages, etc.)
    */
-  static async getConfig(req: Request, res: Response, next: NextFunction): Promise<void> {
+  static async getConfig(_req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const publicConfig = {
         upload: {
@@ -182,7 +180,7 @@ export class TranscribeController {
    * GET /transcribe/:id
    * Get transcription result by ID (placeholder for future implementation)
    */
-  static async getById(req: Request, res: Response, next: NextFunction): Promise<void> {
+  static async getById(req: Request, _res: Response, next: NextFunction): Promise<void> {
     try {
       const { id } = req.params;
 
@@ -206,7 +204,7 @@ export class TranscribeController {
    * DELETE /transcribe/:id
    * Delete transcription result by ID (placeholder for future implementation)
    */
-  static async deleteById(req: Request, res: Response, next: NextFunction): Promise<void> {
+  static async deleteById(req: Request, _res: Response, next: NextFunction): Promise<void> {
     try {
       const { id } = req.params;
 

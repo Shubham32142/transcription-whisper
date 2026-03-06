@@ -1,7 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import { config } from '../config';
-import { ApiResponseSuccess, ApiResponseError } from '../utils/response';
-import { ApiError } from '../utils/error';
+import { ApiResponseSuccess } from '../utils/response';
+import { ApiKeysRepository } from '../repositories/apiKeys.repository';
 
 /**
  * HealthController - System health and status monitoring
@@ -12,7 +12,7 @@ export class HealthController {
    * GET /health
    * Health check endpoint - verifies API is running and dependencies are accessible
    */
-  static async health(req: Request, res: Response, next: NextFunction): Promise<void> {
+  static async health(_req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       // Check ML service connectivity
       const mlServiceUrl = `${config.ml.serviceUrl}/health`;
@@ -38,7 +38,6 @@ export class HealthController {
       let dbHealthy = false;
       try {
         // Try a simple query
-        const { ApiKeysRepository } = require('../repositories/apiKeys.repository');
         ApiKeysRepository.findAll();
         dbHealthy = true;
       } catch (error) {
@@ -86,10 +85,9 @@ export class HealthController {
    * GET /health/ready
    * Readiness check - returns 200 if API is ready to accept requests
    */
-  static async ready(req: Request, res: Response, next: NextFunction): Promise<void> {
+  static ready(_req: Request, res: Response, next: NextFunction): void {
     try {
       // Check if all critical services are available
-      const { ApiKeysRepository } = require('../repositories/apiKeys.repository');
       const keys = ApiKeysRepository.findAll();
 
       const ready = Array.isArray(keys) && keys.length > 0;
@@ -106,7 +104,7 @@ export class HealthController {
    * GET /health/live
    * Liveness check - returns 200 if API process is alive
    */
-  static async live(req: Request, res: Response, next: NextFunction): Promise<void> {
+  static live(_req: Request, res: Response, next: NextFunction): void {
     try {
       res.json(new ApiResponseSuccess({ alive: true, uptime: process.uptime() }, 'API is alive'));
     } catch (error) {
@@ -118,16 +116,17 @@ export class HealthController {
    * GET /health/dependencies
    * Check all external dependencies
    */
-  static async dependencies(req: Request, res: Response, next: NextFunction): Promise<void> {
+  static async dependencies(_req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const deps: Record<string, any> = {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const deps: any = {
         ml_service: {
           url: config.ml.serviceUrl,
-          status: 'checking',
+          status: 'checking' as const,
         },
         database: {
           path: config.db.path,
-          status: 'checking',
+          status: 'checking' as const,
         },
       };
 
@@ -150,7 +149,6 @@ export class HealthController {
 
       // Check database
       try {
-        const { ApiKeysRepository } = require('../repositories/apiKeys.repository');
         const count = ApiKeysRepository.findAll().length;
         deps.database.status = 'healthy';
         deps.database.records = count;
@@ -169,8 +167,9 @@ export class HealthController {
    * GET /health/metrics
    * Get API performance metrics (simplified)
    */
-  static async metrics(req: Request, res: Response, next: NextFunction): Promise<void> {
+  static metrics(_req: Request, res: Response, next: NextFunction): void {
     try {
+      const { cpus } = require('os');
       const metrics = {
         uptime_seconds: process.uptime(),
         memory_usage: {
@@ -179,7 +178,7 @@ export class HealthController {
           external: Math.round(process.memoryUsage().external / 1024 / 1024) + 'MB',
         },
         node_version: process.version,
-        cpu_count: require('os').cpus().length,
+        cpu_count: cpus().length,
       };
 
       res.json(new ApiResponseSuccess(metrics, 'API metrics retrieved'));

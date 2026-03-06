@@ -4,7 +4,7 @@ import type { ApiKeyRecord } from '../types';
 import { config } from '../config';
 
 const dbPath = path.resolve(process.cwd(), config.db.path);
-const db = new Database(dbPath);
+const db: Database.Database = new Database(dbPath);
 
 // Initialize database schema
 db.exec(`

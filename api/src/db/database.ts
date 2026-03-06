@@ -3,7 +3,7 @@ import path from "node:path";
 import crypto from "node:crypto";
 
 const dbPath = path.resolve(process.cwd(), "whisperself.db");
-const db = new Database(dbPath);
+const db: Database.Database = new Database(dbPath);
 
 // Initialize database schema
 db.exec(`

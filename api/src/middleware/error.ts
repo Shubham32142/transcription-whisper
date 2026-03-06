@@ -7,7 +7,7 @@ import { ApiError } from '../utils/error';
  * Catches all errors thrown in route handlers and formats responses
  * Must be registered LAST in the middleware chain
  */
-export function errorHandler(err: unknown, req: Request, res: Response, next: NextFunction): void {
+export function errorHandler(err: unknown, _req: Request, res: Response, _next: NextFunction): void {
   // Log error for debugging
   console.error('Error caught by error handler:', {
     message: err instanceof Error ? err.message : String(err),
@@ -95,7 +95,7 @@ export function errorHandler(err: unknown, req: Request, res: Response, next: Ne
  * 404 Not Found Middleware
  * Should be registered after all route handlers
  */
-export function notFoundHandler(req: Request, res: Response, next: NextFunction): void {
+export function notFoundHandler(req: Request, res: Response, _next: NextFunction): void {
   const errorResponse = new ApiResponseError(
     'NOT_FOUND',
     `Route not found: ${req.method} ${req.path}`,

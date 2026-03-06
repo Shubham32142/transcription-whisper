@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
+import { randomBytes } from 'node:crypto';
 import { ApiResponseSuccess } from '../utils/response';
-import { ValidationError, NotFoundError, AuthError, ApiError } from '../utils/error';
+import { ValidationError, NotFoundError, ApiError } from '../utils/error';
 import { ApiKeysRepository } from '../repositories/apiKeys.repository';
 import { ApiKeyResponse } from '../types';
 
@@ -13,7 +14,7 @@ export class AdminController {
    * GET /admin/keys
    * List all API keys with metadata
    */
-  static async listKeys(req: Request, res: Response, next: NextFunction): Promise<void> {
+  static async listKeys(_req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const keys = ApiKeysRepository.findAll();
 
@@ -54,8 +55,7 @@ export class AdminController {
       }
 
       // Generate a new API key
-      const crypto = require('crypto');
-      const newKey = `wsp_${crypto.randomBytes(32).toString('hex')}`;
+      const newKey = `wsp_${randomBytes(32).toString('hex')}`;
 
       // Save to database
       const keyRecord = ApiKeysRepository.create(newKey, name.trim());
@@ -129,7 +129,7 @@ export class AdminController {
    * GET /admin/stats
    * Get API usage statistics
    */
-  static async getStats(req: Request, res: Response, next: NextFunction): Promise<void> {
+  static async getStats(_req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const stats = ApiKeysRepository.getStats();
 
@@ -201,7 +201,7 @@ export class AdminController {
    * Params: { key: string }
    * Body: { name?: string, is_active?: boolean }
    */
-  static async updateKey(req: Request, res: Response, next: NextFunction): Promise<void> {
+  static async updateKey(req: Request, _res: Response, next: NextFunction): Promise<void> {
     try {
       let { key } = req.params;
 

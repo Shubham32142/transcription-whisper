@@ -17,7 +17,6 @@ import { transcribeRouter } from './routes/transcribe';
 import { adminRouter } from './routes/admin';
 
 // Import middleware
-import { apiAuth } from './middleware/auth';
 import { errorHandler, notFoundHandler, requestLogger } from './middleware/error';
 
 const app = express();
@@ -55,16 +54,26 @@ app.use(`/transcribe`, limiter);
 
 // Health check (no auth required)
 app.get('/health', (req, res, next) => {
-  transcribeRouter.stack
+  const handler = transcribeRouter.stack
     .find((layer: any) => layer.route?.path === '/health')
-    ?.route?.stack[0].handle(req, res, next);
+    ?.route?.stack?.[0]?.handle;
+  if (handler) {
+    handler(req, res, next);
+  } else {
+    res.status(404).json({ error: 'Health endpoint not found' });
+  }
 });
 
 // Public API config
 app.get('/api/config', (req, res, next) => {
-  transcribeRouter.stack
+  const handler = transcribeRouter.stack
     .find((layer: any) => layer.route?.path === '/api/config')
-    ?.route?.stack[0].handle(req, res, next);
+    ?.route?.stack?.[0]?.handle;
+  if (handler) {
+    handler(req, res, next);
+  } else {
+    res.status(404).json({ error: 'Config endpoint not found' });
+  }
 });
 
 // Transcription routes (requires API key)

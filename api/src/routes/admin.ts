@@ -1,9 +1,9 @@
-import { Router } from 'express';
+import { Router, type Router as ExpressRouter } from 'express';
 import { adminAuth } from '../middleware/auth';
 import { asyncHandler } from '../utils/asyncHandler';
 import { AdminController } from '../controllers/admin.controller';
 
-export const adminRouter = Router();
+export const adminRouter: ExpressRouter = Router();
 
 // List all API keys
 adminRouter.get('/keys', adminAuth, asyncHandler(AdminController.listKeys));

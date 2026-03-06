@@ -17,7 +17,7 @@ export const transcribeService = {
    * Transcribe an audio file to text
    */
   async transcribe(request: TranscriptionRequest): Promise<TranscriptionResult> {
-    const { filePath, fileName, language, task } = request;
+    const { filePath, language, task } = request;
 
     // Normalize audio to WAV format
     const normalizedPath = path.join(path.dirname(filePath), `${randomUUID()}.wav`);
@@ -42,14 +42,14 @@ export const transcribeService = {
   /**
    * Record API key usage
    */
-  async recordUsage(apiKey: string): Promise<void> {
+  recordUsage(apiKey: string): void {
     ApiKeysRepository.recordUsage(apiKey);
   },
 
   /**
    * Get transcription history (placeholder)
    */
-  async getHistory(apiKey: string): Promise<any[]> {
+  getHistory(_apiKey: string): TranscriptionResult[] {
     // TODO: Implement transcription history
     return [];
   },

@@ -13,7 +13,7 @@ export class ApiResponseSuccess<T = unknown> implements ApiResponse<T> {
     this.message = message;
   }
 
-  toJSON() {
+  toJSON(): { success: boolean; data?: T; message?: string } {
     return {
       success: this.success,
       data: this.data,
@@ -33,7 +33,7 @@ export class ApiResponseError implements ApiResponse {
     this.error = { code, message, details };
   }
 
-  toJSON() {
+  toJSON(): { success: boolean; error: ApiErrorDetail } {
     return {
       success: this.success,
       error: this.error,
