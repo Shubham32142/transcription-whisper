@@ -1,6 +1,18 @@
 # CI/CD Pipeline Setup Guide
 
-This repository has automated checks configured to run on every push and pull request.
+This repository has automated checks configured to run **BEFORE pushing** and on every push/pull request to GitHub.
+
+## 🛡️ Pre-Push Protection
+
+**All checks run locally BEFORE pushing to prevent bad code from reaching GitHub!**
+
+When you run `git push`, a **pre-push hook** automatically:
+1. ✅ Installs dependencies
+2. ✅ Runs ESLint (unused vars = ❌ error)
+3. ✅ Runs TypeScript type checking
+4. ✅ Builds the project
+
+**If ANY check fails, the push is blocked!**
 
 ## What Gets Checked
 
@@ -30,6 +42,15 @@ This repository has automated checks configured to run on every push and pull re
 5. **Import Check** - Verifies module structure
 
 ## Running Checks Locally
+
+### Before Every Push (Automatic)
+The pre-push hook runs automatically when you push. **You don't need to do anything!**
+
+```bash
+git push  # Hook runs automatically
+```
+
+### Manual Testing (Optional)
 
 ### API Checks
 
@@ -71,6 +92,53 @@ Before committing, run:
 ```bash
 cd api
 pnpm precommit         # Runs lint + type-check
+```
+
+## Pre-Push Hook Behavior
+
+When you try to push: as a backup verification:
+
+```
+┌─────────────────────────────────────────┐
+│  On Push/PR to main or develop branch  │
+│  (After pre-push checks already passed)
+🔍 Running pre-push checks...
+
+📦 Installing dependencies...
+✓ Dependencies installed
+
+🔧 Running ESLint (unused vars = error)...
+✓ No linting errors
+
+🔍 Running TypeScript type checking...
+✓ No type errors
+
+🏗️  Building project...
+✓ Build successful
+
+✅ All pre-push checks passed!
+🚀 Proceeding with push...
+```
+
+### If Checks Fail
+
+```
+$ git push
+
+🔧 Running ESLint (unused vars = error)...
+❌ ESLint failed! Fix linting errors before pushing.
+   Run: cd api && pnpm lint:fix
+
+error: failed to push some refs
+```
+
+**The push is blocked until you fix the issues!**
+
+## Bypassing Pre-Push Checks (Not Recommended)
+
+Only use this in emergencies:
+```bash
+git push --no-verify
 ```
 
 ## CI/CD Pipeline Stages
