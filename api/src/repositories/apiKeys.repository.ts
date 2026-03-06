@@ -1,5 +1,6 @@
 import Database from 'better-sqlite3';
 import path from 'node:path';
+import { randomBytes } from 'node:crypto';
 import type { ApiKeyRecord } from '../types';
 import { config } from '../config';
 
@@ -50,7 +51,9 @@ export class ApiKeysRepository {
     stmt.run(key, name, created_at);
 
     const result = this.findByKey(key);
-    if (!result) throw new Error('Failed to create API key');
+    if (!result) {
+      throw new Error('Failed to create API key');
+    }
     return result;
   }
 
@@ -89,12 +92,13 @@ export class ApiKeysRepository {
 /**
  * Ensure at least one API key exists for testing
  */
-function ensureDefaultKey() {
+function ensureDefaultKey(): void {
   const stmt = db.prepare('SELECT COUNT(*) as count FROM api_keys');
   const result = stmt.get() as { count: number };
   if (result.count === 0) {
-    const key = `wsp_${require('crypto').randomBytes(32).toString('hex')}`;
+    const key = `wsp_${randomBytes(32).toString('hex')}`;
     ApiKeysRepository.create(key, 'Default Test Key');
+    // eslint-disable-next-line no-console
     console.log('✓ Created default API key for testing');
   }
 }
