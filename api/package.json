@@ -16,6 +16,7 @@
     "precommit": "pnpm lint && pnpm type-check"
   },
   "dependencies": {
+    "@supabase/supabase-js": "^2.98.0",
     "axios": "^1.8.2",
     "better-sqlite3": "^12.6.2",
     "dotenv": "^16.4.7",

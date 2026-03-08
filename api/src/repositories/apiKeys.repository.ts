@@ -82,7 +82,7 @@ export class ApiKeysRepository {
 
     const { error } = await supabase
       .from('api_keys')
-      // @ts-expect-error - Supabase type inference issue with generic database types
+      // @ts-expect-error - Supabase generic type inference limitation
       .update({ is_active: 0 })
       .eq('key', key);
 
@@ -108,7 +108,7 @@ export class ApiKeysRepository {
 
     const { error } = await supabase
       .from('api_keys')
-      // @ts-expect-error - Supabase type inference issue with generic database types
+      // @ts-expect-error - Supabase generic type inference limitation
       .update({
         last_used: new Date().toISOString(),
         usage_count: record.usage_count + 1,
