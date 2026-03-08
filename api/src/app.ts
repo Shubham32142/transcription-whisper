@@ -1,5 +1,4 @@
-import express from 'express';
-import type { Express } from 'express';
+import express, { type Express } from 'express';
 import helmet from 'helmet';
 import morgan from 'morgan';
 import rateLimit from 'express-rate-limit';
