@@ -1,4 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
+import { logger } from '../config/logger';
 import { ApiResponseError } from '../utils/response';
 import { ApiError } from '../utils/error';
 
@@ -22,7 +23,7 @@ export function errorHandler(
   _next: NextFunction,
 ): void {
   // Log error for debugging
-  console.error('Error caught by error handler:', {
+  logger.error('Error caught by error handler', {
     message: err instanceof Error ? err.message : String(err),
     type: err instanceof ApiError ? 'ApiError' : typeof err,
     stack: err instanceof Error ? err.stack : undefined,
@@ -130,8 +131,7 @@ export function requestLogger(req: Request, res: Response, next: NextFunction): 
   res.json = function (body: any) {
     const duration = Date.now() - start;
 
-    // eslint-disable-next-line no-console
-    console.log({
+    logger.info('Request completed', {
       timestamp: new Date().toISOString(),
       method: req.method,
       path: req.path,

@@ -31,6 +31,7 @@ export interface TranscriptionRequest {
   fileName: string;
   language: string;
   task: 'transcribe' | 'translate';
+  model?: 'tiny' | 'base' | 'small' | 'medium' | 'large';
 }
 
 // API Key Types

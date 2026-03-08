@@ -1,5 +1,4 @@
 import { Request, Response, NextFunction } from 'express';
-import { randomBytes } from 'node:crypto';
 import { ApiResponseSuccess } from '../utils/response';
 import { ValidationError, NotFoundError, ApiError } from '../utils/error';
 import { ApiKeysRepository } from '../repositories/apiKeys.repository';
@@ -14,10 +13,9 @@ export class AdminController {
    * GET /admin/keys
    * List all API keys with metadata
    */
-  // eslint-disable-next-line @typescript-eslint/require-await
   static async listKeys(_req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const keys = ApiKeysRepository.findAll();
+      const keys = await ApiKeysRepository.findAll();
 
       // Mask sensitive key data (only show last 8 characters)
       const maskedKeys = keys.map((key) => ({
@@ -44,7 +42,6 @@ export class AdminController {
    * Create a new API key
    * Body: { name: string }
    */
-  // eslint-disable-next-line @typescript-eslint/require-await
   static async createKey(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const body = req.body as { name?: string } | undefined;
@@ -58,10 +55,10 @@ export class AdminController {
       }
 
       // Generate a new API key
-      const newKey = `wsp_${randomBytes(32).toString('hex')}`;
+      const newKey = ApiKeysRepository.generateApiKey();
 
       // Save to database
-      const keyRecord = ApiKeysRepository.create(newKey, name.trim());
+      const keyRecord = await ApiKeysRepository.create(newKey, name.trim());
 
       const response: ApiKeyResponse = {
         id: keyRecord.id,
@@ -82,7 +79,6 @@ export class AdminController {
    * Deactivate an API key
    * Params: { key: string }
    */
-  // eslint-disable-next-line @typescript-eslint/require-await
   static async deleteKey(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       let { key } = req.params;
@@ -102,7 +98,7 @@ export class AdminController {
       key = key.trim();
 
       // Verify key exists
-      const existingKey = ApiKeysRepository.findByKey(key);
+      const existingKey = await ApiKeysRepository.findByKey(key);
       if (!existingKey) {
         throw new NotFoundError('API key not found', {
           key: key.substring(0, 4) + '...',
@@ -110,7 +106,7 @@ export class AdminController {
       }
 
       // Deactivate the key
-      const success = ApiKeysRepository.deactivate(key);
+      const success = await ApiKeysRepository.deactivate(key);
 
       if (!success) {
         throw new ApiError('Failed to deactivate API key', 500, 'DEACTIVATION_FAILED', {
@@ -133,10 +129,9 @@ export class AdminController {
    * GET /admin/stats
    * Get API usage statistics
    */
-  // eslint-disable-next-line @typescript-eslint/require-await
   static async getStats(_req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const stats = ApiKeysRepository.getStats();
+      const stats = await ApiKeysRepository.getStats();
 
       const responseStats = {
         total_api_keys: stats.total,
@@ -176,7 +171,7 @@ export class AdminController {
 
       key = key.trim();
 
-      const keyRecord = ApiKeysRepository.findByKey(key);
+      const keyRecord = await ApiKeysRepository.findByKey(key);
 
       if (!keyRecord) {
         throw new NotFoundError('API key not found', {
@@ -226,7 +221,7 @@ export class AdminController {
 
       key = key.trim();
 
-      const keyRecord = ApiKeysRepository.findByKey(key);
+      const keyRecord = await ApiKeysRepository.findByKey(key);
       if (!keyRecord) {
         throw new NotFoundError('API key not found', {
           key: key.substring(0, 4) + '...',

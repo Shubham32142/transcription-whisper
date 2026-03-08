@@ -12,6 +12,7 @@ export const config = {
 
   upload: {
     maxFileSizeMb: Number(process.env.MAX_FILE_SIZE_MB) || 100,
+    dir: process.env.UPLOAD_DIR || './uploads',
     allowedTypes: (
       process.env.ALLOWED_AUDIO_TYPES || 'audio/mpeg,audio/wav,audio/webm,audio/mp4,audio/ogg'
     )
@@ -21,16 +22,25 @@ export const config = {
   },
 
   ml: {
-    serviceUrl: process.env.ML_SERVICE_URL || 'http://localhost:8000',
+    serviceUrl: process.env.ML_SERVICE_URL || 'http://127.0.0.1:8000',
   },
 
   db: {
     path: process.env.DB_PATH || './whisperself.db',
   },
 
+  supabase: {
+    url: process.env.SUPABASE_URL || '',
+    anonKey: process.env.SUPABASE_ANON_KEY || '',
+  },
+
   rateLimit: {
     windowMs: 60 * 1000,
     max: 10,
+  },
+
+  bootstrap: {
+    enableDefaultApiKey: process.env.ENABLE_DEFAULT_API_KEY === 'true',
   },
 } as const;
 

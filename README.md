@@ -116,15 +116,28 @@ Access at `/admin.html` to:
 
 ## Database
 
-WhisperSelf uses SQLite for:
+WhisperSelf now uses **Supabase** (PostgreSQL) for:
 
 - API key storage and validation
 - Usage tracking and statistics
 - Transcription history
+- Real-time features (optional)
 
-Database file: `whisperself.db` (created automatically in project root)
+### Setting Up Supabase
 
-**Backup**: Simply copy the `whisperself.db` file
+1. Create a free Supabase account at https://supabase.com
+2. Create a new project
+3. Run the SQL migration from `api/src/db/supabase-migration.sql` in the SQL Editor
+4. Get your project URL and anon key from Project Settings → API
+5. Add them to your `.env` file:
+   ```env
+   SUPABASE_URL=https://xxxxxxxxxxxxx.supabase.co
+   SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+   ```
+
+For detailed setup instructions, see [docs/guides/supabase-setup.md](docs/guides/supabase-setup.md).
+
+**Legacy SQLite Support**: The old SQLite database (`whisperself.db`) is deprecated but can still be used if needed.
 
 ## Docker Deployment
 
@@ -150,12 +163,22 @@ ADMIN_KEY=your_secure_admin_key_here
 # ML Service
 ML_SERVICE_URL=http://localhost:8000
 MODEL_PATH=./models/large-v3
+
+# Supabase Configuration
+SUPABASE_URL=https://xxxxxxxxxxxxx.supabase.co
+SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
 ```
 
-## System Requirements
+See `.env.example` for all available options.
+ML_SEupabase account\*\* (free tier available)
 
-- **Node.js** 20+ and pnpm
-- **Python** 3.9+ with pip
+## Notes
+
+- Uploaded temp files are deleted after transcription
+- ML service should remain internal/localhost in production
+- First run creates a default test API key automatically if Supabase is configured
+- Web UI stores transcription history in browser localStorage
+- Supabase provides built-in backups, monitoring, and scaling
 - **ffmpeg** (for audio normalization)
 - **SQLite** (included)
 

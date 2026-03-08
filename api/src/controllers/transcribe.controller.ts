@@ -7,6 +7,7 @@ import {
   UnsupportedFileTypeError,
   ApiError,
 } from '../utils/error';
+import { logger } from '../config/logger';
 import { transcribeService } from '../services/transcriber';
 import { TranscriptionRequest } from '../types';
 
@@ -51,10 +52,11 @@ export class TranscribeController {
         );
       }
 
-      // Extract language and task from request
-      const body = req.body as { language?: string; task?: string } | undefined;
+      // Extract language, task, and model from request
+      const body = req.body as { language?: string; task?: string; model?: string } | undefined;
       const language = body?.language || 'auto';
       const task = body?.task || 'transcribe';
+      const model = body?.model || 'small';
 
       // Validate language
       const supportedLanguages = ['auto', 'en', 'es', 'fr', 'de', 'ja', 'zh', 'ar', 'pt', 'ru'];
@@ -74,12 +76,23 @@ export class TranscribeController {
         });
       }
 
+      // Validate model
+      const supportedModels = ['tiny', 'base', 'small', 'medium', 'large'];
+      if (!supportedModels.includes(model)) {
+        throw new ValidationError('Invalid model', {
+          field: 'model',
+          message: `Unsupported model: ${model}`,
+          supported: supportedModels,
+        });
+      }
+
       // Build transcription request
       const transcriptionRequest: TranscriptionRequest = {
         filePath: req.file.path,
         fileName: req.file.originalname,
         language,
         task: task as 'transcribe' | 'translate',
+        model: model as 'tiny' | 'base' | 'small' | 'medium' | 'large',
       };
 
       // Call transcriber service
@@ -88,8 +101,12 @@ export class TranscribeController {
       // Extract API key for usage recording (if present)
       const apiKey = req.apiKey;
       if (apiKey) {
-        // Record usage - fire and forget
-        transcribeService.recordUsage(apiKey);
+        // Record usage - fire and forget (don't await to avoid slowing down response)
+        transcribeService.recordUsage(apiKey).catch((error: unknown) => {
+          logger.warn('Failed to record API key usage', {
+            error: error instanceof Error ? error.message : String(error),
+          });
+        });
       }
 
       // Return success response
@@ -99,6 +116,7 @@ export class TranscribeController {
             transcript: result.transcript,
             language: result.language || language,
             duration: result.duration,
+            segments: result.segments || [],
             fileName: req.file.originalname,
           },
           'Transcription completed successfully',

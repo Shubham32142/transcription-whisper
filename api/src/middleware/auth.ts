@@ -9,7 +9,7 @@ import { ApiKeysRepository } from '../repositories/apiKeys.repository';
  * Throws AuthError if key is missing or inactive
  * Throws ValidationError if API key format is invalid
  */
-export function apiAuth(req: Request, _res: Response, next: NextFunction): void {
+export async function apiAuth(req: Request, _res: Response, next: NextFunction): Promise<void> {
   try {
     const providedApiKey = req.header('x-api-key');
 
@@ -29,7 +29,7 @@ export function apiAuth(req: Request, _res: Response, next: NextFunction): void 
     }
 
     // Check if key exists and is active
-    const keyRecord = ApiKeysRepository.findByKey(providedApiKey);
+    const keyRecord = await ApiKeysRepository.findByKey(providedApiKey);
     if (!keyRecord || keyRecord.is_active === 0) {
       throw new AuthError('Invalid or inactive API key', {
         key: `${providedApiKey.substring(0, 4)}...`,
@@ -37,7 +37,7 @@ export function apiAuth(req: Request, _res: Response, next: NextFunction): void 
     }
 
     // Record usage
-    ApiKeysRepository.recordUsage(providedApiKey);
+    await ApiKeysRepository.recordUsage(providedApiKey);
 
     // Store API key in request for later use
     req.apiKey = providedApiKey;

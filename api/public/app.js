@@ -1,14 +1,18 @@
-const API_KEY = 'test_key';
+// No API key needed for local use
 const MAX_FILE_SIZE = 100 * 1024 * 1024; // 100MB default, updated from server
 
-let mediaRecorder;
-let audioChunks = [];
-let recordingStartTime;
-let timerInterval;
+// Model information with estimated times per minute of audio
+const MODELS = {
+    tiny: { name: 'Tiny', estimatedSecondsPerMin: 1, file: 'Systran/faster-whisper-tiny' },
+    base: { name: 'Base', estimatedSecondsPerMin: 10, file: 'Systran/faster-whisper-base' },
+    small: { name: 'Small', estimatedSecondsPerMin: 30, file: 'Systran/faster-whisper-small' },
+    medium: { name: 'Medium', estimatedSecondsPerMin: 120, file: 'Systran/faster-whisper-medium' },
+    large: { name: 'Large', estimatedSecondsPerMin: 600, file: 'Systran/faster-whisper-large-v3' },
+};
+
 let selectedFile;
-let audioContext;
-let analyser;
-let recordingStream;
+let progressInterval;
+let estimatedDuration;
 
 // Elements
 const uploadArea = document.getElementById('uploadArea');
@@ -16,14 +20,16 @@ const fileInput = document.getElementById('fileInput');
 const fileInfo = document.getElementById('fileInfo');
 const recordBtn = document.getElementById('recordBtn');
 const submitBtn = document.getElementById('submitBtn');
+const modelSelect = document.getElementById('model');
 const languageSelect = document.getElementById('language');
 const taskSelect = document.getElementById('task');
 const loadingSection = document.getElementById('loadingSection');
+const loadingText = document.getElementById('loadingText');
+const progressBar = document.getElementById('progressBar');
+const estimatedTimeDisplay = document.getElementById('estimatedTime');
 const resultsSection = document.getElementById('resultsSection');
 const results = document.getElementById('results');
 const limitInfo = document.getElementById('limitInfo');
-const waveform = document.getElementById('waveform');
-const timer = document.getElementById('timer');
 const historySection = document.getElementById('historySection');
 const historyList = document.getElementById('history');
 
@@ -38,13 +44,13 @@ document.addEventListener('DOMContentLoaded', async () => {
 // Fetch server limits
 async function fetchServerLimits() {
     try {
-        const response = await fetch('/api/config', {
-            headers: { 'x-api-key': API_KEY }
-        });
+        const response = await fetch('/api/config');
         if (response.ok) {
-            const config = await response.json();
-            const maxSizeMB = config.maxFileSizeMB || 100;
-            limitInfo.textContent = `Maximum file size: ${maxSizeMB} MB | Supported: ${config.allowedTypes.join(', ')}`;
+            const apiResponse = await response.json();
+            const config = apiResponse.data || apiResponse;
+            const maxSizeMB = config.upload?.maxFileSizeMb || 100;
+            const allowedTypes = config.upload?.allowedMimeTypes || [];
+            limitInfo.textContent = `Maximum file size: ${maxSizeMB} MB | Supported: ${allowedTypes.join(', ')}`;
             window.MAX_FILE_SIZE = maxSizeMB * 1024 * 1024;
         }
     } catch (error) {
@@ -78,7 +84,6 @@ function setupEventListeners() {
         }
     });
 
-    recordBtn.addEventListener('click', toggleRecording);
     submitBtn.addEventListener('click', transcribe);
 
     document.getElementById('copyBtn')?.addEventListener('click', copyToClipboard);
@@ -100,134 +105,103 @@ function handleFileSelect(file) {
     lucide.createIcons();
     fileInfo.classList.remove('hidden');
     submitBtn.disabled = false;
-
-    // Clear waveform if recording was done
-    waveform.classList.add('hidden');
-}
-
-// Recording
-async function toggleRecording() {
-    if (!mediaRecorder || mediaRecorder.state === 'inactive') {
-        try {
-            audioChunks = [];
-            recordingStream = await navigator.mediaDevices.getUserMedia({ audio: true });
-            mediaRecorder = new MediaRecorder(recordingStream);
-
-            // Setup visualizer
-            audioContext = new (window.AudioContext || window.webkitAudioContext)();
-            analyser = audioContext.createAnalyser();
-            const source = audioContext.createMediaStreamAudioDestination();
-            analyser.connect(audioContext.destination);
-            recordingStream.getTracks().forEach(track => {
-                const mediaSource = audioContext.createMediaStreamSource(recordingStream);
-                mediaSource.connect(analyser);
-            });
-
-            mediaRecorder.ondataavailable = (e) => audioChunks.push(e.data);
-            mediaRecorder.onstop = handleRecordingStop;
-            mediaRecorder.start();
-
-            recordBtn.innerHTML = '<i data-lucide="square" class="btn-icon"></i><span>Stop Recording</span>';
-            recordBtn.classList.add('recording');
-            lucide.createIcons();
-            recordingStartTime = Date.now();
-            startTimer();
-            visualizeAudio();
-        } catch (error) {
-            showToast('Microphone access denied', 'error');
-        }
-    } else {
-        mediaRecorder.stop();
-        mediaRecorder.stream.getTracks().forEach(track => track.stop());
-        recordBtn.innerHTML = '<i data-lucide="mic" class="btn-icon"></i><span>Start Recording</span>';
-        recordBtn.classList.remove('recording');
-        lucide.createIcons();
-        clearInterval(timerInterval);
-    }
-}
-
-function handleRecordingStop() {
-    const audioBlob = new Blob(audioChunks, { type: 'audio/wav' });
-    const file = new File([audioBlob], `recording-${Date.now()}.wav`, { type: 'audio/wav' });
-    handleFileSelect(file);
-    timer.classList.add('hidden');
-    waveform.classList.add('hidden');
-}
-
-function startTimer() {
-    timer.classList.remove('hidden');
-    timerInterval = setInterval(() => {
-        const elapsed = Math.floor((Date.now() - recordingStartTime) / 1000);
-        const mins = Math.floor(elapsed / 60);
-        const secs = elapsed % 60;
-        timer.textContent = `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
-    }, 100);
-}
-
-function visualizeAudio() {
-    waveform.classList.remove('hidden');
-    waveform.innerHTML = '';
-    const bars = 20;
-    for (let i = 0; i < bars; i++) {
-        const bar = document.createElement('div');
-        bar.className = 'waveform-bar';
-        bar.style.animationDelay = `${i * 0.05}s`;
-        waveform.appendChild(bar);
-    }
 }
 
 // Transcription
 async function transcribe() {
     if (!selectedFile) {
-        showToast('Please select a file or record audio', 'error');
+        showToast('Please select a file', 'error');
         return;
     }
 
+    // Get selected model
+    const selectedModel = modelSelect.value;
+    const modelInfo = MODELS[selectedModel];
+
     const formData = new FormData();
     formData.append('file', selectedFile);
+    formData.append('model', selectedModel);
     formData.append('language', languageSelect.value);
     formData.append('task', taskSelect.value);
 
     // Disable all interactive elements
     submitBtn.disabled = true;
-    submitBtn.textContent = 'Transcribing...';
-    recordBtn.disabled = true;
     uploadArea.style.pointerEvents = 'none';
     uploadArea.style.opacity = '0.6';
     languageSelect.disabled = true;
     taskSelect.disabled = true;
+    modelSelect.disabled = true;
 
+    // Estimate duration based on model (rough estimate: assume 50 seconds average audio)
+    // This will be updated once we know the actual audio duration
+    estimatedDuration = 50; // seconds, will be refined
+    
+    // Calculate estimated processing time: duration * (seconds per minute of audio / 60)
+    const selectedModelFormatType = selectedModel;
+    const estimatedSeconds = (estimatedDuration / 60) * modelInfo.estimatedSecondsPerMin;
+    
+    // Update loading text and show progress bar
+    loadingText.textContent = `Processing with ${modelInfo.name} model...`;
+    estimatedTimeDisplay.textContent = `Estimated time: ${formatSeconds(estimatedSeconds)}`;
+    
     loadingSection.classList.remove('hidden');
     resultsSection.classList.add('hidden');
+    progressBar.style.width = '0%';
+
+    // Start progress bar animation
+    let progressValue = 0;
+    const progressStep = 100 / (estimatedSeconds * 10); // Increment over estimated time
+    progressInterval = setInterval(() => {
+        progressValue = Math.min(progressValue + progressStep, 95); // Cap at 95% until complete
+        progressBar.style.width = progressValue + '%';
+    }, 100);
 
     try {
+        // Create abort controller with 30 minute timeout
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 1000 * 60 * 30); // 30 minutes
+        
         const response = await fetch('/transcribe', {
             method: 'POST',
-            headers: { 'x-api-key': API_KEY },
-            body: formData
+            body: formData,
+            signal: controller.signal
         });
 
+        clearTimeout(timeoutId);
+        clearInterval(progressInterval);
+        progressBar.style.width = '100%';
+
         if (!response.ok) {
-            const error = await response.json();
-            throw new Error(error.error || 'Transcription failed');
+            const errorResponse = await response.json();
+            throw new Error(errorResponse.error?.message || errorResponse.message || 'Transcription failed');
         }
 
-        const data = await response.json();
+        const apiResponse = await response.json();
+        const data = apiResponse.data || apiResponse;
         displayResults(data);
         saveToHistory(data);
         showToast('Transcription completed!', 'success');
     } catch (error) {
-        showToast(`Error: ${error.message}`, 'error');
+        if (error.name === 'AbortError') {
+            showToast('Request timeout - transcription took too long', 'error');
+        } else {
+            showToast(`Error: ${error.message}`, 'error');
+        }
         // Re-enable buttons on error
         submitBtn.disabled = false;
-        submitBtn.textContent = 'Start Transcription';
-        recordBtn.disabled = false;
         uploadArea.style.pointerEvents = 'auto';
         uploadArea.style.opacity = '1';
         languageSelect.disabled = false;
         taskSelect.disabled = false;
+        modelSelect.disabled = false;
     } finally {
         loadingSection.classList.add('hidden');
+        if (progressInterval) {
+            clearInterval(progressInterval);
+        }
+        progressBar.style.width = '0%';
+        estimatedTimeDisplay.textContent = '';
+        loadingText.textContent = 'Transcribing your audio...';
     }
 }
 
@@ -311,7 +285,6 @@ function loadHistoryItem(id) {
 
 // Re-enable all controls after successful transcription
 function enableControls() {
-    recordBtn.disabled = false;
     uploadArea.style.pointerEvents = 'auto';
     uploadArea.style.opacity = '1';
     languageSelect.disabled = false;
@@ -358,6 +331,18 @@ function formatFileSize(bytes) {
     const sizes = ['Bytes', 'KB', 'MB', 'GB'];
     const i = Math.floor(Math.log(bytes) / Math.log(k));
     return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i];
+}
+
+function formatSeconds(seconds) {
+    if (seconds < 60) {
+        return `${Math.round(seconds)}s`;
+    } else if (seconds < 3600) {
+        const minutes = Math.round(seconds / 60);
+        return `${minutes}m`;
+    } else {
+        const hours = Math.round(seconds / 3600);
+        return `${hours}h`;
+    }
 }
 
 function showToast(message, type = 'info') {

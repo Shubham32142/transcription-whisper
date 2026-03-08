@@ -17,7 +17,7 @@ export const transcribeService = {
    * Transcribe an audio file to text
    */
   async transcribe(request: TranscriptionRequest): Promise<TranscriptionResult> {
-    const { filePath, language, task } = request;
+    const { filePath, language, task, model } = request;
 
     // Normalize audio to WAV format
     const normalizedPath = path.join(path.dirname(filePath), `${randomUUID()}.wav`);
@@ -26,7 +26,7 @@ export const transcribeService = {
       await normalizeToWav(filePath, normalizedPath);
 
       // Send to ML service
-      const result = await transcribeWithMlService(normalizedPath, language, task);
+      const result = await transcribeWithMlService(normalizedPath, language, task, model);
 
       return result;
     } finally {
@@ -42,8 +42,8 @@ export const transcribeService = {
   /**
    * Record API key usage
    */
-  recordUsage(apiKey: string): void {
-    ApiKeysRepository.recordUsage(apiKey);
+  async recordUsage(apiKey: string): Promise<void> {
+    await ApiKeysRepository.recordUsage(apiKey);
   },
 
   /**
@@ -63,9 +63,14 @@ export async function transcribeWithMlService(
   filePath: string,
   language: string = 'auto',
   task: string = 'transcribe',
+  model: string = 'small',
 ): Promise<TranscriptionResult> {
   const form = new FormData();
   form.append('file', fs.createReadStream(filePath), path.basename(filePath));
+
+  if (model) {
+    form.append('model', model);
+  }
 
   if (language && language !== 'auto') {
     form.append('language', language);
@@ -80,7 +85,7 @@ export async function transcribeWithMlService(
     form,
     {
       headers: form.getHeaders(),
-      timeout: 1000 * 60 * 10, // 10 minutes
+      timeout: 1000 * 60 * 20, // 20 minutes timeout for large files
     },
   );
 

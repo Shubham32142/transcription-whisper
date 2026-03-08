@@ -41,26 +41,19 @@
                 <p id="fileSize"></p>
               </div>
             </div>
-
-            <!-- OR Divider -->
-            <div class="divider">
-              <span>OR</span>
-            </div>
-
-            <!-- Record -->
-            <div class="input-method">
-              <button id="recordBtn" class="btn btn-record">
-                <i data-lucide="mic" class="btn-icon"></i>
-                <span>Start Recording</span>
-              </button>
-              <div id="timer" class="timer hidden">00:00</div>
-              <div id="waveform" class="waveform hidden"></div>
-            </div>
           </div>
 
           <!-- Options & Submit in one row -->
           <div class="controls-row">
             <div class="options-inline">
+              <select id="model" class="select-compact">
+                <option value="tiny">Tiny (~1s)</option>
+                <option value="base">Base (~10s)</option>
+                <option selected value="small">Small (~30s)</option>
+                <option value="medium">Medium (~2m)</option>
+                <option value="large">Large (~10m)</option>
+              </select>
+
               <select id="language" class="select-compact">
                 <option value="auto">Auto Detect</option>
                 <option value="en">English</option>
@@ -94,7 +87,11 @@
         <!-- Loading Section -->
         <div id="loadingSection" class="loading-section hidden">
           <div class="spinner"></div>
-          <p>Transcribing your audio...</p>
+          <p id="loadingText">Transcribing your audio...</p>
+          <div class="progress-container">
+            <div id="progressBar" class="progress-bar"></div>
+          </div>
+          <p id="estimatedTime" class="estimated-time"></p>
         </div>
 
         <!-- Results Section -->

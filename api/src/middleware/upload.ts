@@ -2,17 +2,12 @@ import multer from "multer";
 import path from "node:path";
 import { randomUUID } from "node:crypto";
 import fs from "node:fs";
+import { config } from "../config";
 
 const uploadDirectory =
-  process.env.UPLOAD_DIR ?? path.resolve(process.cwd(), "..", "uploads");
-const maxFileSizeMb = Number(process.env.MAX_FILE_SIZE_MB ?? 25);
-const allowedMimeTypes = (
-  process.env.ALLOWED_AUDIO_TYPES ??
-  "audio/mpeg,audio/wav,audio/webm,audio/mp4,audio/ogg"
-)
-  .split(",")
-  .map((item) => item.trim())
-  .filter(Boolean);
+  config.upload.dir ?? path.resolve(process.cwd(), "..", "uploads");
+const maxFileSizeMb = config.upload.maxFileSizeMb;
+const allowedMimeTypes = config.upload.allowedTypes;
 
 if (!fs.existsSync(uploadDirectory)) {
   fs.mkdirSync(uploadDirectory, { recursive: true });

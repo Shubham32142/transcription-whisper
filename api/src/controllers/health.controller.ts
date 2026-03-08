@@ -14,7 +14,7 @@ interface DependencyStatus {
 
 interface DependenciesResponse {
   ml_service: DependencyStatus & { url: string };
-  database: DependencyStatus & { path: string };
+  database: DependencyStatus & { type: string; url: string };
 }
 
 /**
@@ -52,7 +52,7 @@ export class HealthController {
       let dbHealthy = false;
       try {
         // Try a simple query
-        ApiKeysRepository.findAll();
+        await ApiKeysRepository.findAll();
         dbHealthy = true;
       } catch (error) {
         dbHealthy = false;
@@ -76,7 +76,8 @@ export class HealthController {
           },
           database: {
             status: dbHealthy ? 'healthy' : 'unhealthy',
-            path: config.db.path,
+            type: 'supabase',
+            url: config.supabase.url ? 'configured' : 'not configured',
           },
         },
       };
@@ -99,10 +100,10 @@ export class HealthController {
    * GET /health/ready
    * Readiness check - returns 200 if API is ready to accept requests
    */
-  static ready(_req: Request, res: Response, next: NextFunction): void {
+  static async ready(_req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       // Check if all critical services are available
-      const keys = ApiKeysRepository.findAll();
+      const keys = await ApiKeysRepository.findAll();
 
       const ready = Array.isArray(keys) && keys.length > 0;
 
@@ -138,7 +139,8 @@ export class HealthController {
           status: 'checking' as const,
         },
         database: {
-          path: config.db.path,
+          type: 'supabase',
+          url: config.supabase.url || 'not configured',
           status: 'checking' as const,
         },
       };
@@ -162,9 +164,9 @@ export class HealthController {
 
       // Check database
       try {
-        const count = ApiKeysRepository.findAll().length;
+        const keys = await ApiKeysRepository.findAll();
         deps.database.status = 'healthy';
-        deps.database.records = count;
+        deps.database.records = keys.length;
       } catch (error) {
         deps.database.status = 'unreachable';
         deps.database.error = error instanceof Error ? error.message : 'Unknown error';
