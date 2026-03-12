@@ -1,3 +1,4 @@
+import fs from 'node:fs';
 import { Request, Response, NextFunction } from 'express';
 import { config } from '../config';
 import { ApiResponseSuccess } from '../utils/response';
@@ -95,8 +96,17 @@ export class TranscribeController {
         model: model as 'tiny' | 'base' | 'small' | 'medium' | 'large',
       };
 
-      // Call transcriber service
-      const result = await transcribeService.transcribe(transcriptionRequest);
+      const uploadedFilePath = req.file.path;
+      let result;
+      try {
+        // Call transcriber service
+        result = await transcribeService.transcribe(transcriptionRequest);
+      } finally {
+        // Always delete the original upload from disk after processing
+        fs.promises.unlink(uploadedFilePath).catch(() => {
+          // Ignore cleanup errors
+        });
+      }
 
       // Extract API key for usage recording (if present)
       const apiKey = req.apiKey;
