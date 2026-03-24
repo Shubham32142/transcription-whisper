@@ -135,15 +135,15 @@ async function transcribe() {
     // Estimate duration based on model (rough estimate: assume 50 seconds average audio)
     // This will be updated once we know the actual audio duration
     estimatedDuration = 50; // seconds, will be refined
-    
+
     // Calculate estimated processing time: duration * (seconds per minute of audio / 60)
     const selectedModelFormatType = selectedModel;
     const estimatedSeconds = (estimatedDuration / 60) * modelInfo.estimatedSecondsPerMin;
-    
+
     // Update loading text and show progress bar
     loadingText.textContent = `Processing with ${modelInfo.name} model...`;
     estimatedTimeDisplay.textContent = `Estimated time: ${formatSeconds(estimatedSeconds)}`;
-    
+
     loadingSection.classList.remove('hidden');
     resultsSection.classList.add('hidden');
     progressBar.style.width = '0%';
@@ -160,7 +160,7 @@ async function transcribe() {
         // Create abort controller with 30 minute timeout
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 1000 * 60 * 30); // 30 minutes
-        
+
         const response = await fetch('/transcribe', {
             method: 'POST',
             body: formData,

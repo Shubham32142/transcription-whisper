@@ -4,6 +4,22 @@ import { config } from '../config';
 import { ApiResponseSuccess } from '../utils/response';
 import { ApiKeysRepository } from '../repositories/apiKeys.repository';
 
+const joinUrl = (baseUrl: string, endpointPath: string): string => {
+  const normalizedBase = baseUrl.replace(/\/+$/, '');
+  const normalizedPath = endpointPath.startsWith('/') ? endpointPath : `/${endpointPath}`;
+  return `${normalizedBase}${normalizedPath}`;
+};
+
+const buildMlHeaders = (): HeadersInit => {
+  if (!config.ml.serviceToken) {
+    return {};
+  }
+
+  return {
+    Authorization: `Bearer ${config.ml.serviceToken}`,
+  };
+};
+
 // Type definitions for dependency health checks
 interface DependencyStatus {
   status: 'checking' | 'healthy' | 'unhealthy' | 'unreachable';
@@ -29,23 +45,26 @@ export class HealthController {
   static async health(_req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       // Check ML service connectivity
-      const mlServiceUrl = `${config.ml.serviceUrl}/health`;
-      let mlHealthy = false;
+      const mlServiceUrl = joinUrl(config.ml.serviceUrl, config.ml.healthPath);
+      let mlHealthy = !config.ml.healthCheckEnabled;
       let mlError: string | null = null;
 
-      try {
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 5000);
+      if (config.ml.healthCheckEnabled) {
+        try {
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 5000);
 
-        const response = await fetch(mlServiceUrl, {
-          signal: controller.signal,
-        });
+          const response = await fetch(mlServiceUrl, {
+            signal: controller.signal,
+            headers: buildMlHeaders(),
+          });
 
-        clearTimeout(timeoutId);
-        mlHealthy = response.ok;
-      } catch (error) {
-        mlHealthy = false;
-        mlError = error instanceof Error ? error.message : 'Unknown error';
+          clearTimeout(timeoutId);
+          mlHealthy = response.ok;
+        } catch (error) {
+          mlHealthy = false;
+          mlError = error instanceof Error ? error.message : 'Unknown error';
+        }
       }
 
       // Check database connectivity
@@ -72,6 +91,7 @@ export class HealthController {
           ml: {
             status: mlHealthy ? 'healthy' : 'unhealthy',
             url: config.ml.serviceUrl,
+            healthCheckEnabled: config.ml.healthCheckEnabled,
             error: mlError,
           },
           database: {
@@ -136,7 +156,7 @@ export class HealthController {
       const deps: DependenciesResponse = {
         ml_service: {
           url: config.ml.serviceUrl,
-          status: 'checking' as const,
+          status: config.ml.healthCheckEnabled ? ('checking' as const) : ('healthy' as const),
         },
         database: {
           type: 'supabase',
@@ -146,20 +166,23 @@ export class HealthController {
       };
 
       // Check ML service
-      try {
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 3000);
+      if (config.ml.healthCheckEnabled) {
+        try {
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 3000);
 
-        const response = await fetch(`${config.ml.serviceUrl}/health`, {
-          signal: controller.signal,
-        });
+          const response = await fetch(joinUrl(config.ml.serviceUrl, config.ml.healthPath), {
+            signal: controller.signal,
+            headers: buildMlHeaders(),
+          });
 
-        clearTimeout(timeoutId);
-        deps.ml_service.status = response.ok ? 'healthy' : 'unhealthy';
-        deps.ml_service.statusCode = response.status;
-      } catch (error) {
-        deps.ml_service.status = 'unreachable';
-        deps.ml_service.error = error instanceof Error ? error.message : 'Unknown error';
+          clearTimeout(timeoutId);
+          deps.ml_service.status = response.ok ? 'healthy' : 'unhealthy';
+          deps.ml_service.statusCode = response.status;
+        } catch (error) {
+          deps.ml_service.status = 'unreachable';
+          deps.ml_service.error = error instanceof Error ? error.message : 'Unknown error';
+        }
       }
 
       // Check database

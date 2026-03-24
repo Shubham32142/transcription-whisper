@@ -23,6 +23,10 @@ export const config = {
 
   ml: {
     serviceUrl: process.env.ML_SERVICE_URL || 'http://127.0.0.1:8000',
+    transcribePath: process.env.ML_TRANSCRIBE_PATH || '/transcribe',
+    healthPath: process.env.ML_HEALTH_PATH || '/health',
+    serviceToken: process.env.ML_SERVICE_TOKEN || '',
+    healthCheckEnabled: process.env.ML_HEALTHCHECK_ENABLED !== 'false',
   },
 
   db: {

@@ -12,5 +12,6 @@ Current files:
 - `architecture/architecture.md`
 - `requirements/requirements.md`
 - `guides/ci-cd-guide.md`
+- `guides/free-hosting-options.md`
 - `guides/supabase-setup.md`
 - `roadmap/phase2.md`

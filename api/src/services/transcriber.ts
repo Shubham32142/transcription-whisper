@@ -8,6 +8,12 @@ import { normalizeToWav } from '../utils/ffmpeg';
 import { TranscriptionRequest, TranscriptionResult } from '../types';
 import { randomUUID } from 'node:crypto';
 
+const joinUrl = (baseUrl: string, endpointPath: string): string => {
+  const normalizedBase = baseUrl.replace(/\/+$/, '');
+  const normalizedPath = endpointPath.startsWith('/') ? endpointPath : `/${endpointPath}`;
+  return `${normalizedBase}${normalizedPath}`;
+};
+
 /**
  * Transcriber Service
  * Handles audio file transcription using the ML service
@@ -80,11 +86,16 @@ export async function transcribeWithMlService(
     form.append('task', task);
   }
 
+  const headers = {
+    ...form.getHeaders(),
+    ...(config.ml.serviceToken ? { Authorization: `Bearer ${config.ml.serviceToken}` } : {}),
+  };
+
   const response = await axios.post<TranscriptionResult>(
-    `${config.ml.serviceUrl}/transcribe`,
+    joinUrl(config.ml.serviceUrl, config.ml.transcribePath),
     form,
     {
-      headers: form.getHeaders(),
+      headers,
       timeout: 1000 * 60 * 20, // 20 minutes timeout for large files
     },
   );

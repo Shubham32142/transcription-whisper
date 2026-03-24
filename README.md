@@ -147,6 +147,42 @@ Build and run both services:
 cd docker && docker-compose up --build
 ```
 
+## Using Your Hugging Face Space As ML Service
+
+If you created a Docker Space (for example `dark-kill/transcribe`) and want this API to use it:
+
+1. Ensure your Space exposes:
+   - `POST /transcribe` (multipart form-data: `file`, optional `model`, `language`, `task`)
+   - `GET /health` (recommended)
+2. In your API environment, set:
+
+```env
+ML_SERVICE_URL=https://<your-space-subdomain>.hf.space
+ML_TRANSCRIBE_PATH=/transcribe
+ML_HEALTH_PATH=/health
+ML_SERVICE_TOKEN=
+ML_HEALTHCHECK_ENABLED=true
+```
+
+3. If your Space is private, create a Hugging Face access token and set:
+
+```env
+ML_SERVICE_TOKEN=hf_xxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+```
+
+4. If your Space does not expose `/health`, set:
+
+```env
+ML_HEALTHCHECK_ENABLED=false
+```
+
+5. Restart API after changing env values.
+
+Recommended for free tiers:
+
+- Use `small` as default model for better reliability.
+- Keep `large` disabled for public usage unless you upgrade compute.
+
 ## Environment Variables
 
 Create `.env` file in project root:
