@@ -36,8 +36,7 @@ _DEFAULT_BEAM_SIZE = int(os.getenv("WHISPER_BEAM_SIZE", "5"))
 
 def get_model(model_name: str | None = None) -> WhisperModel:
   """Load and return a Whisper model. Caches loaded models for reuse."""
-  global _MODELS
-  
+  # _MODELS is defined at module level; no need for global
   # Determine which model to load
   model_key = model_name or _DEFAULT_MODEL
   model_path = _MODEL_MAPPING.get(model_key, _MODEL_NAME)
