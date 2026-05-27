@@ -1,0 +1,19 @@
+services:
+  - type: web
+    name: whisperself-api
+    env: node
+    rootDir: api
+    plan: free
+    buildCommand: pnpm install --frozen-lockfile && pnpm build
+    startCommand: pnpm start
+    healthCheckPath: /health
+    autoDeploy: true
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: ML_SERVICE_URL
+        value: https://YOUR-ML-SPACE.hf.space
+      - key: ML_HEALTHCHECK_ENABLED
+        value: "false"
+      - key: ENABLE_DEFAULT_API_KEY
+        value: "true"
