@@ -35,7 +35,18 @@ const transcribeResponse = `{
       "end": 5.23,
       "text": "Hello, this is a test transcription."
     }
-  ]
+  ],
+  "utterances": [
+    {
+      "speaker": null,
+      "start": 0.0,
+      "end": 5.23,
+      "text": "Hello, this is a test transcription.",
+      "timestamp": "00:00.000 - 00:05.230"
+    }
+  ],
+  "structuredTranscript": "[00:00.000 - 00:05.230] Hello, this is a test transcription.",
+  "speakerLabelsAvailable": false
 }`;
 
 const curlExample = `curl -X POST http://localhost:3000/transcribe \\

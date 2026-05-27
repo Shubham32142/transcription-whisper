@@ -45,7 +45,17 @@ const limiter = rateLimit({
   legacyHeaders: false,
 });
 
-app.use('/transcribe', limiter);
+app.use('/transcribe', (req, res, next) => {
+  const isTranscriptionCreationRequest =
+    req.method === 'POST' && (req.path === '/' || req.path === '/jobs');
+
+  if (!isTranscriptionCreationRequest) {
+    next();
+    return;
+  }
+
+  limiter(req, res, next);
+});
 
 registerRoutes(app);
 

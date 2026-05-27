@@ -12,7 +12,12 @@ services:
       WHISPER_COMPUTE_TYPE: int8
       WHISPER_LANGUAGE: en
       WHISPER_TASK: transcribe
-      WHISPER_BEAM_SIZE: 5
+      WHISPER_BEAM_SIZE: 1
+      WHISPER_BEST_OF: 1
+      WHISPER_VAD_FILTER: "true"
+      WHISPER_CONDITION_ON_PREVIOUS_TEXT: "false"
+      WHISPER_CPU_THREADS: 4
+      WHISPER_NUM_WORKERS: 1
     volumes:
       - ../models:/models
     ports:

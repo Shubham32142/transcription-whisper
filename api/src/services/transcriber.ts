@@ -5,7 +5,7 @@ import FormData from 'form-data';
 import { config } from '../config';
 import { ApiKeysRepository } from '../repositories/apiKeys.repository';
 import { normalizeToWav } from '../utils/ffmpeg';
-import { TranscriptionRequest, TranscriptionResult } from '../types';
+import { TranscriptionJob, TranscriptionRequest, TranscriptionResult } from '../types';
 import { randomUUID } from 'node:crypto';
 
 const joinUrl = (baseUrl: string, endpointPath: string): string => {
@@ -96,7 +96,72 @@ export async function transcribeWithMlService(
     form,
     {
       headers,
-      timeout: 1000 * 60 * 20, // 20 minutes timeout for large files
+      timeout: config.ml.requestTimeoutMs,
+    },
+  );
+
+  return response.data;
+}
+
+export async function createTranscriptionJobWithMlService(
+  filePath: string,
+  fileName: string,
+  language: string = 'auto',
+  task: string = 'transcribe',
+  model: string = 'small',
+): Promise<TranscriptionJob> {
+  const form = new FormData();
+  form.append('file', fs.createReadStream(filePath), fileName || path.basename(filePath));
+
+  if (model) {
+    form.append('model', model);
+  }
+
+  if (language) {
+    form.append('language', language);
+  }
+
+  if (task) {
+    form.append('task', task);
+  }
+
+  const headers = {
+    ...form.getHeaders(),
+    ...(config.ml.serviceToken ? { Authorization: `Bearer ${config.ml.serviceToken}` } : {}),
+  };
+
+  const response = await axios.post<TranscriptionJob>(
+    joinUrl(config.ml.serviceUrl, `${config.ml.transcribePath}/jobs`),
+    form,
+    {
+      headers,
+      timeout: config.ml.requestTimeoutMs,
+    },
+  );
+
+  return response.data;
+}
+
+export async function getTranscriptionJobFromMlService(jobId: string): Promise<TranscriptionJob> {
+  const response = await axios.get<TranscriptionJob>(
+    joinUrl(config.ml.serviceUrl, `${config.ml.transcribePath}/jobs/${jobId}`),
+    {
+      headers: config.ml.serviceToken ? { Authorization: `Bearer ${config.ml.serviceToken}` } : {},
+      timeout: config.ml.jobPollTimeoutMs,
+    },
+  );
+
+  return response.data;
+}
+
+export async function deleteTranscriptionJobFromMlService(
+  jobId: string,
+): Promise<{ id: string; deleted: boolean }> {
+  const response = await axios.delete<{ id: string; deleted: boolean }>(
+    joinUrl(config.ml.serviceUrl, `${config.ml.transcribePath}/jobs/${jobId}`),
+    {
+      headers: config.ml.serviceToken ? { Authorization: `Bearer ${config.ml.serviceToken}` } : {},
+      timeout: config.ml.jobPollTimeoutMs,
     },
   );
 

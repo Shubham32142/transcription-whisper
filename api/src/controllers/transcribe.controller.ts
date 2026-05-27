@@ -6,11 +6,109 @@ import {
   ValidationError,
   FileTooLargeError,
   UnsupportedFileTypeError,
-  ApiError,
 } from '../utils/error';
 import { logger } from '../config/logger';
-import { transcribeService } from '../services/transcriber';
+import {
+  createTranscriptionJobWithMlService,
+  deleteTranscriptionJobFromMlService,
+  getTranscriptionJobFromMlService,
+  transcribeService,
+} from '../services/transcriber';
 import { TranscriptionRequest } from '../types';
+
+const supportedLanguages = ['auto', 'en', 'es', 'fr', 'de', 'ja', 'zh', 'ar', 'pt', 'ru'];
+const supportedModels = ['tiny', 'base', 'small', 'medium', 'large'];
+const supportedTasks = ['transcribe', 'translate'];
+
+function buildTranscriptionRequest(req: Request): TranscriptionRequest {
+  if (!req.file) {
+    throw new ValidationError('No file provided', {
+      field: 'file',
+      message: 'Audio file is required',
+    });
+  }
+
+  const maxFileSizeBytes = config.upload.maxFileSizeMb * 1024 * 1024;
+  if (req.file.size > maxFileSizeBytes) {
+    throw new FileTooLargeError(`File size exceeds limit of ${config.upload.maxFileSizeMb}MB`, {
+      maxSize: maxFileSizeBytes,
+      actualSize: req.file.size,
+    });
+  }
+
+  const contentType = req.file.mimetype;
+  if (!config.upload.allowedTypes.includes(contentType)) {
+    throw new UnsupportedFileTypeError(
+      `File type not supported. Allowed: ${config.upload.allowedTypes.join(', ')}`,
+      {
+        provided: contentType,
+        allowed: config.upload.allowedTypes,
+      },
+    );
+  }
+
+  const body = req.body as { language?: string; task?: string; model?: string } | undefined;
+  const language = body?.language || 'auto';
+  const task = body?.task || 'transcribe';
+  const model = body?.model || 'small';
+
+  if (!supportedLanguages.includes(language)) {
+    throw new ValidationError('Invalid language', {
+      field: 'language',
+      message: `Unsupported language: ${language}`,
+      supported: supportedLanguages,
+    });
+  }
+
+  if (!supportedTasks.includes(task)) {
+    throw new ValidationError('Invalid task', {
+      field: 'task',
+      message: `Task must be 'transcribe' or 'translate', got: ${task}`,
+    });
+  }
+
+  if (!supportedModels.includes(model)) {
+    throw new ValidationError('Invalid model', {
+      field: 'model',
+      message: `Unsupported model: ${model}`,
+      supported: supportedModels,
+    });
+  }
+
+  return {
+    filePath: req.file.path,
+    fileName: req.file.originalname,
+    language,
+    task: task as 'transcribe' | 'translate',
+    model: model as 'tiny' | 'base' | 'small' | 'medium' | 'large',
+  };
+}
+
+function recordUsage(apiKey: string | undefined): void {
+  if (!apiKey) {
+    return;
+  }
+
+  transcribeService.recordUsage(apiKey).catch((error: unknown) => {
+    logger.warn('Failed to record API key usage', {
+      error: error instanceof Error ? error.message : String(error),
+    });
+  });
+}
+
+function getRequiredIdParam(req: Request): string {
+  const rawId = req.params.id;
+  const id = Array.isArray(rawId) ? rawId[0] : rawId;
+
+  if (!id) {
+    throw new ValidationError('Missing transcription ID', {
+      field: 'id',
+      message: 'Transcription ID is required in URL path',
+    });
+  }
+
+  return id;
+}
 
 /**
  * TranscribeController - Handles all transcription-related requests
@@ -24,79 +122,9 @@ export class TranscribeController {
    */
   static async transcribe(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      // Validate file presence
-      if (!req.file) {
-        throw new ValidationError('No file provided', {
-          field: 'file',
-          message: 'Audio file is required',
-        });
-      }
+      const transcriptionRequest = buildTranscriptionRequest(req);
 
-      // Validate file size (convert MB to bytes)
-      const maxFileSizeBytes = config.upload.maxFileSizeMb * 1024 * 1024;
-      if (req.file.size > maxFileSizeBytes) {
-        throw new FileTooLargeError(`File size exceeds limit of ${config.upload.maxFileSizeMb}MB`, {
-          maxSize: maxFileSizeBytes,
-          actualSize: req.file.size,
-        });
-      }
-
-      // Validate file type
-      const contentType = req.file.mimetype;
-      if (!config.upload.allowedTypes.includes(contentType)) {
-        throw new UnsupportedFileTypeError(
-          `File type not supported. Allowed: ${config.upload.allowedTypes.join(', ')}`,
-          {
-            provided: contentType,
-            allowed: config.upload.allowedTypes,
-          },
-        );
-      }
-
-      // Extract language, task, and model from request
-      const body = req.body as { language?: string; task?: string; model?: string } | undefined;
-      const language = body?.language || 'auto';
-      const task = body?.task || 'transcribe';
-      const model = body?.model || 'small';
-
-      // Validate language
-      const supportedLanguages = ['auto', 'en', 'es', 'fr', 'de', 'ja', 'zh', 'ar', 'pt', 'ru'];
-      if (!supportedLanguages.includes(language)) {
-        throw new ValidationError('Invalid language', {
-          field: 'language',
-          message: `Unsupported language: ${language}`,
-          supported: supportedLanguages,
-        });
-      }
-
-      // Validate task
-      if (!['transcribe', 'translate'].includes(task)) {
-        throw new ValidationError('Invalid task', {
-          field: 'task',
-          message: `Task must be 'transcribe' or 'translate', got: ${task}`,
-        });
-      }
-
-      // Validate model
-      const supportedModels = ['tiny', 'base', 'small', 'medium', 'large'];
-      if (!supportedModels.includes(model)) {
-        throw new ValidationError('Invalid model', {
-          field: 'model',
-          message: `Unsupported model: ${model}`,
-          supported: supportedModels,
-        });
-      }
-
-      // Build transcription request
-      const transcriptionRequest: TranscriptionRequest = {
-        filePath: req.file.path,
-        fileName: req.file.originalname,
-        language,
-        task: task as 'transcribe' | 'translate',
-        model: model as 'tiny' | 'base' | 'small' | 'medium' | 'large',
-      };
-
-      const uploadedFilePath = req.file.path;
+      const uploadedFilePath = transcriptionRequest.filePath;
       let result;
       try {
         // Call transcriber service
@@ -109,29 +137,50 @@ export class TranscribeController {
       }
 
       // Extract API key for usage recording (if present)
-      const apiKey = req.apiKey;
-      if (apiKey) {
-        // Record usage - fire and forget (don't await to avoid slowing down response)
-        transcribeService.recordUsage(apiKey).catch((error: unknown) => {
-          logger.warn('Failed to record API key usage', {
-            error: error instanceof Error ? error.message : String(error),
-          });
-        });
-      }
+      recordUsage(req.apiKey);
 
       // Return success response
       res.json(
         new ApiResponseSuccess(
           {
             transcript: result.transcript,
-            language: result.language || language,
+            language: result.language || transcriptionRequest.language,
             duration: result.duration,
             segments: result.segments || [],
-            fileName: req.file.originalname,
+            utterances: result.utterances || [],
+            structuredTranscript: result.structuredTranscript || '',
+            speakerLabelsAvailable: result.speakerLabelsAvailable ?? false,
+            fileName: transcriptionRequest.fileName,
           },
           'Transcription completed successfully',
         ),
       );
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  static async createJob(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const transcriptionRequest = buildTranscriptionRequest(req);
+      const uploadedFilePath = transcriptionRequest.filePath;
+
+      try {
+        const job = await createTranscriptionJobWithMlService(
+          transcriptionRequest.filePath,
+          transcriptionRequest.fileName,
+          transcriptionRequest.language,
+          transcriptionRequest.task,
+          transcriptionRequest.model,
+        );
+
+        recordUsage(req.apiKey);
+        res.status(202).json(new ApiResponseSuccess(job, 'Transcription job created successfully'));
+      } finally {
+        fs.promises.unlink(uploadedFilePath).catch(() => {
+          // Ignore cleanup errors
+        });
+      }
     } catch (error) {
       next(error);
     }
@@ -211,21 +260,12 @@ export class TranscribeController {
    * Get transcription result by ID (placeholder for future implementation)
    */
   // eslint-disable-next-line @typescript-eslint/require-await
-  static async getById(req: Request, _res: Response, next: NextFunction): Promise<void> {
+  static async getById(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const { id } = req.params;
+      const id = getRequiredIdParam(req);
 
-      if (!id) {
-        throw new ValidationError('Missing transcription ID', {
-          field: 'id',
-          message: 'Transcription ID is required in URL path',
-        });
-      }
-
-      // TODO: Implement transcription history retrieval
-      throw new ApiError('Not implemented yet', 501, 'NOT_IMPLEMENTED', {
-        feature: 'Get transcription by ID',
-      });
+      const job = await getTranscriptionJobFromMlService(id);
+      res.json(new ApiResponseSuccess(job, 'Transcription job status retrieved successfully'));
     } catch (error) {
       next(error);
     }
@@ -236,21 +276,12 @@ export class TranscribeController {
    * Delete transcription result by ID (placeholder for future implementation)
    */
   // eslint-disable-next-line @typescript-eslint/require-await
-  static async deleteById(req: Request, _res: Response, next: NextFunction): Promise<void> {
+  static async deleteById(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const { id } = req.params;
+      const id = getRequiredIdParam(req);
 
-      if (!id) {
-        throw new ValidationError('Missing transcription ID', {
-          field: 'id',
-          message: 'Transcription ID is required in URL path',
-        });
-      }
-
-      // TODO: Implement transcription history deletion
-      throw new ApiError('Not implemented yet', 501, 'NOT_IMPLEMENTED', {
-        feature: 'Delete transcription by ID',
-      });
+      const deleted = await deleteTranscriptionJobFromMlService(id);
+      res.json(new ApiResponseSuccess(deleted, 'Transcription job deleted successfully'));
     } catch (error) {
       next(error);
     }

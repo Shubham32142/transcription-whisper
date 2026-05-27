@@ -27,6 +27,8 @@ export const config = {
     healthPath: process.env.ML_HEALTH_PATH || '/health',
     serviceToken: process.env.ML_SERVICE_TOKEN || '',
     healthCheckEnabled: process.env.ML_HEALTHCHECK_ENABLED !== 'false',
+    requestTimeoutMs: Number(process.env.ML_REQUEST_TIMEOUT_MS) || 60 * 60 * 1000,
+    jobPollTimeoutMs: Number(process.env.ML_JOB_POLL_TIMEOUT_MS) || 30 * 1000,
   },
 
   db: {

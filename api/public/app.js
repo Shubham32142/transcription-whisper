@@ -11,8 +11,6 @@ const MODELS = {
 };
 
 let selectedFile;
-let progressInterval;
-let estimatedDuration;
 
 // Elements
 const uploadArea = document.getElementById('uploadArea');
@@ -114,9 +112,7 @@ async function transcribe() {
         return;
     }
 
-    // Get selected model
     const selectedModel = modelSelect.value;
-    const modelInfo = MODELS[selectedModel];
 
     const formData = new FormData();
     formData.append('file', selectedFile);
@@ -132,61 +128,24 @@ async function transcribe() {
     taskSelect.disabled = true;
     modelSelect.disabled = true;
 
-    // Estimate duration based on model (rough estimate: assume 50 seconds average audio)
-    // This will be updated once we know the actual audio duration
-    estimatedDuration = 50; // seconds, will be refined
-
-    // Calculate estimated processing time: duration * (seconds per minute of audio / 60)
-    const selectedModelFormatType = selectedModel;
-    const estimatedSeconds = (estimatedDuration / 60) * modelInfo.estimatedSecondsPerMin;
-
-    // Update loading text and show progress bar
-    loadingText.textContent = `Processing with ${modelInfo.name} model...`;
-    estimatedTimeDisplay.textContent = `Estimated time: ${formatSeconds(estimatedSeconds)}`;
-
     loadingSection.classList.remove('hidden');
     resultsSection.classList.add('hidden');
     progressBar.style.width = '0%';
-
-    // Start progress bar animation
-    let progressValue = 0;
-    const progressStep = 100 / (estimatedSeconds * 10); // Increment over estimated time
-    progressInterval = setInterval(() => {
-        progressValue = Math.min(progressValue + progressStep, 95); // Cap at 95% until complete
-        progressBar.style.width = progressValue + '%';
-    }, 100);
+    loadingText.textContent = 'Uploading audio...';
+    estimatedTimeDisplay.textContent = 'Preparing transcription job';
 
     try {
-        // Create abort controller with 30 minute timeout
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 1000 * 60 * 30); // 30 minutes
+        const jobResponse = await createTranscriptionJob(formData);
+        const createdJob = jobResponse.data || jobResponse;
+        const completedJob = await pollTranscriptionJob(createdJob.id);
+        const data = completedJob.result;
 
-        const response = await fetch('/transcribe', {
-            method: 'POST',
-            body: formData,
-            signal: controller.signal
-        });
-
-        clearTimeout(timeoutId);
-        clearInterval(progressInterval);
         progressBar.style.width = '100%';
-
-        if (!response.ok) {
-            const errorResponse = await response.json();
-            throw new Error(errorResponse.error?.message || errorResponse.message || 'Transcription failed');
-        }
-
-        const apiResponse = await response.json();
-        const data = apiResponse.data || apiResponse;
         displayResults(data);
         saveToHistory(data);
         showToast('Transcription completed!', 'success');
     } catch (error) {
-        if (error.name === 'AbortError') {
-            showToast('Request timeout - transcription took too long', 'error');
-        } else {
-            showToast(`Error: ${error.message}`, 'error');
-        }
+        showToast(`Error: ${error.message}`, 'error');
         // Re-enable buttons on error
         submitBtn.disabled = false;
         uploadArea.style.pointerEvents = 'auto';
@@ -196,9 +155,6 @@ async function transcribe() {
         modelSelect.disabled = false;
     } finally {
         loadingSection.classList.add('hidden');
-        if (progressInterval) {
-            clearInterval(progressInterval);
-        }
         progressBar.style.width = '0%';
         estimatedTimeDisplay.textContent = '';
         loadingText.textContent = 'Transcribing your audio...';
@@ -207,6 +163,11 @@ async function transcribe() {
 
 // Display Results
 function displayResults(data) {
+    const structuredTranscript = data.structuredTranscript || '';
+    const speakerNote = data.speakerLabelsAvailable
+        ? 'Speaker labels detected'
+        : 'Speaker labels are not available with the current model';
+
     results.innerHTML = `
         <div class="result-item transcript">
             ${data.transcript || '(No speech detected)'}
@@ -222,10 +183,120 @@ function displayResults(data) {
                 <strong>Segments:</strong> ${data.segments.length}
             </div>
         ` : ''}
+        ${data.utterances?.length ? `
+            <div class="result-item metadata">
+                <strong>Structured Entries:</strong> ${data.utterances.length}
+            </div>
+            <div class="result-item metadata">
+                <strong>Speakers:</strong> ${speakerNote}
+            </div>
+            <div class="result-item transcript structured-transcript">
+                ${structuredTranscript.replaceAll('\n', '<br>')}
+            </div>
+        ` : ''}
     `;
     resultsSection.classList.remove('hidden');
     window.currentTranscript = data.transcript;
     enableControls();
+}
+
+function createTranscriptionJob(formData) {
+    return new Promise((resolve, reject) => {
+        const xhr = new XMLHttpRequest();
+        xhr.open('POST', '/transcribe/jobs');
+        xhr.responseType = 'json';
+
+        xhr.upload.onprogress = (event) => {
+            if (!event.lengthComputable) {
+                return;
+            }
+
+            const percent = (event.loaded / event.total) * 100;
+            progressBar.style.width = `${Math.min(percent, 100)}%`;
+            loadingText.textContent = 'Uploading audio...';
+            estimatedTimeDisplay.textContent = `${percent.toFixed(1)}% uploaded`;
+        };
+
+        xhr.onload = () => {
+            if (xhr.status >= 200 && xhr.status < 300) {
+                resolve(xhr.response);
+                return;
+            }
+
+            const errorMessage = xhr.response?.error?.message
+                || xhr.response?.message
+                || 'Failed to create transcription job';
+            reject(new Error(errorMessage));
+        };
+
+        xhr.onerror = () => {
+            reject(new Error('Network error while uploading audio'));
+        };
+
+        xhr.send(formData);
+    });
+}
+
+async function pollTranscriptionJob(jobId) {
+    while (true) {
+        const response = await fetch(`/transcribe/jobs/${jobId}`);
+        if (!response.ok) {
+            const errorResponse = await response.json().catch(() => null);
+            throw new Error(errorResponse?.error?.message || errorResponse?.message || 'Failed to fetch transcription status');
+        }
+
+        const apiResponse = await response.json();
+        const job = apiResponse.data || apiResponse;
+        updateJobProgress(job);
+
+        if (job.status === 'completed') {
+            return job;
+        }
+
+        if (job.status === 'failed') {
+            throw new Error(job.error || 'Transcription failed');
+        }
+
+        await delay(1000);
+    }
+}
+
+function updateJobProgress(job) {
+    const progress = job.progress || {};
+    const percentage = Number.isFinite(progress.percentage) ? progress.percentage : 0;
+    const processedSeconds = Number.isFinite(progress.processedSeconds) ? progress.processedSeconds : 0;
+    const totalSeconds = Number.isFinite(progress.totalSeconds) ? progress.totalSeconds : null;
+    const elapsedSeconds = Number.isFinite(progress.elapsedSeconds) ? progress.elapsedSeconds : 0;
+    const modelName = MODELS[job.model]?.name || job.model;
+
+    progressBar.style.width = `${Math.min(Math.max(percentage, 0), 100)}%`;
+
+    if (job.status === 'queued') {
+        loadingText.textContent = 'Queued for transcription...';
+    } else if (job.status === 'processing') {
+        loadingText.textContent = `Processing with ${modelName} model... ${percentage.toFixed(1)}%`;
+    } else if (job.status === 'completed') {
+        loadingText.textContent = 'Transcription completed';
+    } else {
+        loadingText.textContent = 'Transcription failed';
+    }
+
+    const detailParts = [];
+    if (totalSeconds !== null && totalSeconds > 0) {
+        detailParts.push(`${formatDetailedSeconds(processedSeconds)} / ${formatDetailedSeconds(totalSeconds)} processed`);
+    } else if (processedSeconds > 0) {
+        detailParts.push(`${formatDetailedSeconds(processedSeconds)} processed`);
+    }
+
+    if (elapsedSeconds > 0) {
+        detailParts.push(`Elapsed ${formatDetailedSeconds(elapsedSeconds)}`);
+    }
+
+    if (progress.currentText) {
+        detailParts.push(progress.currentText.length > 80 ? `${progress.currentText.slice(0, 77)}...` : progress.currentText);
+    }
+
+    estimatedTimeDisplay.textContent = detailParts.join(' • ');
 }
 
 // History
@@ -361,4 +432,21 @@ function toggleHistory() {
     historySection.classList.toggle('hidden');
     chevron.classList.toggle('rotated');
     lucide.createIcons();
+}
+
+function formatDetailedSeconds(seconds) {
+    const safeSeconds = Math.max(0, Math.round(seconds));
+    const hours = Math.floor(safeSeconds / 3600);
+    const minutes = Math.floor((safeSeconds % 3600) / 60);
+    const secs = safeSeconds % 60;
+
+    if (hours > 0) {
+        return `${hours}:${String(minutes).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+    }
+
+    return `${minutes}:${String(secs).padStart(2, '0')}`;
+}
+
+function delay(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
 }

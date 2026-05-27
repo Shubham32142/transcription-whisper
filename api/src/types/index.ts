@@ -19,11 +19,22 @@ export interface TranscriptionSegment {
   text: string;
 }
 
+export interface TranscriptionUtterance {
+  speaker: string | null;
+  start: number;
+  end: number;
+  text: string;
+  timestamp: string;
+}
+
 export interface TranscriptionResult {
   transcript: string;
   language: string;
   duration: number;
   segments: TranscriptionSegment[];
+  utterances: TranscriptionUtterance[];
+  structuredTranscript: string;
+  speakerLabelsAvailable: boolean;
 }
 
 export interface TranscriptionRequest {
@@ -32,6 +43,30 @@ export interface TranscriptionRequest {
   language: string;
   task: 'transcribe' | 'translate';
   model?: 'tiny' | 'base' | 'small' | 'medium' | 'large';
+}
+
+export interface TranscriptionJobProgress {
+  stage: string;
+  percentage: number;
+  processedSeconds: number;
+  totalSeconds: number | null;
+  elapsedSeconds: number;
+  currentText?: string;
+}
+
+export interface TranscriptionJob {
+  id: string;
+  status: 'queued' | 'processing' | 'completed' | 'failed';
+  fileName: string;
+  model: string;
+  language: string;
+  task: string;
+  createdAt: string;
+  updatedAt: string;
+  completedAt: string | null;
+  error: string | null;
+  progress: TranscriptionJobProgress;
+  result: TranscriptionResult | null;
 }
 
 // API Key Types
