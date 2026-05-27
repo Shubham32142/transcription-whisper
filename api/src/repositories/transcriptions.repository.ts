@@ -1,4 +1,4 @@
-import { getSupabaseClient, type TranscriptionRecord } from '../lib/supabase';
+import { getSupabaseClient, type Database, type TranscriptionRecord } from '../lib/supabase';
 
 /**
  * Transcriptions Repository - Handles all database queries for transcriptions using Supabase
@@ -16,15 +16,17 @@ export class TranscriptionsRepository {
   ): Promise<TranscriptionRecord> {
     const supabase = getSupabaseClient();
 
+    const payload: Database['public']['Tables']['transcriptions']['Insert'] = {
+      api_key: apiKey,
+      filename,
+      transcript,
+      language,
+      duration,
+    };
+
     const { data, error } = await supabase
       .from('transcriptions')
-      .insert({
-        api_key: apiKey,
-        filename,
-        transcript,
-        language,
-        duration,
-      } as any)
+      .insert(payload as never)
       .select()
       .single();
 
@@ -109,15 +111,16 @@ export class TranscriptionsRepository {
       throw new Error(`Failed to fetch transcription stats: ${error.message}`);
     }
 
-    const durations = (data as any[])
-      .map((t: any) => t.duration)
-      .filter((d: any): d is number => d !== null && d !== undefined);
+    const rows = (data ?? []) as Array<Pick<TranscriptionRecord, 'duration'>>;
+    const durations = rows
+      .map((row) => row.duration)
+      .filter((duration): duration is number => typeof duration === 'number');
 
     const totalDuration = durations.reduce((sum, d) => sum + d, 0);
     const averageDuration = durations.length > 0 ? totalDuration / durations.length : 0;
 
     return {
-      total: data.length,
+      total: rows.length,
       totalDuration,
       averageDuration,
     };

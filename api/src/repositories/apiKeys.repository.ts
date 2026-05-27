@@ -2,7 +2,7 @@ import { randomBytes } from 'node:crypto';
 import { config } from '../config';
 import { logger } from '../config/logger';
 import type { ApiKeyRecord } from '../types';
-import { getSupabaseClient } from '../lib/supabase';
+import { getSupabaseClient, type Database } from '../lib/supabase';
 
 /**
  * API Keys Repository - Handles all database queries for API keys using Supabase
@@ -57,13 +57,15 @@ export class ApiKeysRepository {
       throw new Error('API key already exists');
     }
 
+    const payload: Database['public']['Tables']['api_keys']['Insert'] = {
+      key,
+      name,
+      is_active: 1,
+    };
+
     const { data, error } = await supabase
       .from('api_keys')
-      .insert({
-        key,
-        name,
-        is_active: 1,
-      } as any)
+      .insert(payload as never)
       .select()
       .single();
 
@@ -132,8 +134,11 @@ export class ApiKeysRepository {
       throw new Error(`Failed to fetch stats: ${error.message}`);
     }
 
-    const record = data as any;
-    const result = Array.isArray(record) ? record[0] : record;
+    type StatsRow = {
+      total_keys?: number;
+      active_keys?: number;
+    };
+    const result = Array.isArray(data) ? ((data[0] as unknown as StatsRow | undefined) ?? undefined) : undefined;
 
     return {
       total: Number(result?.total_keys || 0),
