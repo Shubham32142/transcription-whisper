@@ -3,6 +3,10 @@
 ## Overview
 Phase 2 will enhance WhisperSelf with advanced features for improved user experience, developer capabilities, and production readiness.
 
+> **Focused plan:** for the current primary use case (meetings & interviews), see
+> [meetings-interviews-plan.md](./meetings-interviews-plan.md) — a sequenced, value-for-effort
+> ordering of the features below (diarization → AI summary → persistence → review/export).
+
 ---
 
 ## 📋 Phase 2 Features Backlog

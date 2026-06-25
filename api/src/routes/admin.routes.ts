@@ -1,7 +1,7 @@
 import { Router, type Router as ExpressRouter } from 'express';
 
 import { AdminController } from '../controllers/admin.controller';
-import { adminAuth } from '../middleware/auth.middleware';
+import { adminAuth } from '../middleware/auth';
 import { asyncHandler } from '../utils/asyncHandler';
 
 export const adminRouter: ExpressRouter = Router();

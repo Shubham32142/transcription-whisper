@@ -17,7 +17,7 @@ import {
 import { TranscriptionRequest } from '../types';
 
 const supportedLanguages = ['auto', 'en', 'es', 'fr', 'de', 'ja', 'zh', 'ar', 'pt', 'ru'];
-const supportedModels = ['tiny', 'base', 'small', 'medium', 'large'];
+const supportedModels = ['tiny', 'base', 'small', 'medium', 'distil-large-v3', 'large'];
 const supportedTasks = ['transcribe', 'translate'];
 
 function buildTranscriptionRequest(req: Request): TranscriptionRequest {
@@ -50,7 +50,7 @@ function buildTranscriptionRequest(req: Request): TranscriptionRequest {
   const body = req.body as { language?: string; task?: string; model?: string } | undefined;
   const language = body?.language || 'auto';
   const task = body?.task || 'transcribe';
-  const model = body?.model || 'small';
+  const model = body?.model || 'distil-large-v3';
 
   if (!supportedLanguages.includes(language)) {
     throw new ValidationError('Invalid language', {
@@ -80,7 +80,7 @@ function buildTranscriptionRequest(req: Request): TranscriptionRequest {
     fileName: req.file.originalname,
     language,
     task: task as 'transcribe' | 'translate',
-    model: model as 'tiny' | 'base' | 'small' | 'medium' | 'large',
+    model: model as 'tiny' | 'base' | 'small' | 'medium' | 'distil-large-v3' | 'large',
   };
 }
 

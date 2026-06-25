@@ -13,10 +13,19 @@ export interface ApiErrorDetail {
 }
 
 // Transcription Types
+export interface WordTimestamp {
+  start: number;
+  end: number;
+  word: string;
+  probability: number;
+}
+
 export interface TranscriptionSegment {
   start: number;
   end: number;
   text: string;
+  speaker?: string | null;
+  words?: WordTimestamp[];
 }
 
 export interface TranscriptionUtterance {
@@ -42,7 +51,7 @@ export interface TranscriptionRequest {
   fileName: string;
   language: string;
   task: 'transcribe' | 'translate';
-  model?: 'tiny' | 'base' | 'small' | 'medium' | 'large';
+  model?: 'tiny' | 'base' | 'small' | 'medium' | 'distil-large-v3' | 'large';
 }
 
 export interface TranscriptionJobProgress {

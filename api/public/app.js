@@ -7,6 +7,7 @@ const MODELS = {
     base: { name: 'Base', estimatedSecondsPerMin: 10, file: 'Systran/faster-whisper-base' },
     small: { name: 'Small', estimatedSecondsPerMin: 30, file: 'Systran/faster-whisper-small' },
     medium: { name: 'Medium', estimatedSecondsPerMin: 120, file: 'Systran/faster-whisper-medium' },
+    'distil-large-v3': { name: 'Distil-Large', estimatedSecondsPerMin: 90, file: 'Systran/faster-distil-whisper-large-v3' },
     large: { name: 'Large', estimatedSecondsPerMin: 600, file: 'Systran/faster-whisper-large-v3' },
 };
 
@@ -161,19 +162,50 @@ async function transcribe() {
     }
 }
 
+// Speaker badge colors (cycled by order of first appearance)
+const SPEAKER_COLORS = ['#2563eb', '#dc2626', '#059669', '#d97706', '#7c3aed', '#0891b2', '#db2777', '#65a30d'];
+
+function escapeHtml(value) {
+    return String(value ?? '')
+        .replaceAll('&', '&amp;')
+        .replaceAll('<', '&lt;')
+        .replaceAll('>', '&gt;');
+}
+
+// Render a color-coded, speaker-labeled transcript from utterances
+function renderDiarizedTranscript(utterances) {
+    const speakers = [...new Set(utterances.map((u) => u.speaker).filter(Boolean))];
+    const colorFor = (speaker) => SPEAKER_COLORS[Math.max(0, speakers.indexOf(speaker)) % SPEAKER_COLORS.length];
+
+    return utterances
+        .map((u) => {
+            const label = u.speaker || 'Speaker';
+            return `
+                <div class="utterance">
+                    <span class="speaker-badge" style="background:${colorFor(u.speaker)}">${escapeHtml(label)}</span>
+                    <span class="utterance-time">${escapeHtml(u.timestamp)}</span>
+                    <div class="utterance-text">${escapeHtml(u.text)}</div>
+                </div>`;
+        })
+        .join('');
+}
+
 // Display Results
 function displayResults(data) {
     const structuredTranscript = data.structuredTranscript || '';
-    const speakerNote = data.speakerLabelsAvailable
-        ? 'Speaker labels detected'
-        : 'Speaker labels are not available with the current model';
+    const hasSpeakers = data.speakerLabelsAvailable && data.utterances?.some((u) => u.speaker);
+    const speakerNote = hasSpeakers
+        ? `${new Set(data.utterances.map((u) => u.speaker).filter(Boolean)).size} speaker(s) detected`
+        : 'Speaker labels are not available (enable diarization, or use a multilingual model)';
+
+    const transcriptBody = hasSpeakers
+        ? `<div class="result-item transcript diarized-transcript">${renderDiarizedTranscript(data.utterances)}</div>`
+        : `<div class="result-item transcript">${escapeHtml(data.transcript || '(No speech detected)')}</div>`;
 
     results.innerHTML = `
-        <div class="result-item transcript">
-            ${data.transcript || '(No speech detected)'}
-        </div>
+        ${transcriptBody}
         <div class="result-item metadata">
-            <strong>Language:</strong> ${data.language}
+            <strong>Language:</strong> ${escapeHtml(data.language)}
         </div>
         <div class="result-item metadata">
             <strong>Duration:</strong> ${data.duration.toFixed(2)}s
@@ -185,14 +217,13 @@ function displayResults(data) {
         ` : ''}
         ${data.utterances?.length ? `
             <div class="result-item metadata">
-                <strong>Structured Entries:</strong> ${data.utterances.length}
-            </div>
-            <div class="result-item metadata">
                 <strong>Speakers:</strong> ${speakerNote}
             </div>
-            <div class="result-item transcript structured-transcript">
-                ${structuredTranscript.replaceAll('\n', '<br>')}
-            </div>
+            ${!hasSpeakers ? `
+                <div class="result-item transcript structured-transcript">
+                    ${escapeHtml(structuredTranscript).replaceAll('\n', '<br>')}
+                </div>
+            ` : ''}
         ` : ''}
     `;
     resultsSection.classList.remove('hidden');

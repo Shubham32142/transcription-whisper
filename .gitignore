@@ -11,3 +11,7 @@ __pycache__/
 processed_dataset/
 fine_tuned_model/
 .env.local
+
+# Runtime logs (e.g. from the desktop launcher / services)
+*.log
+logs/

@@ -46,12 +46,13 @@
           <!-- Options & Submit in one row -->
           <div class="controls-row">
             <div class="options-inline">
-              <select id="model" class="select-compact">
-                <option value="tiny">Tiny (~1s)</option>
-                <option value="base">Base (~10s)</option>
-                <option selected value="small">Small (~30s)</option>
-                <option value="medium">Medium (~2m)</option>
-                <option value="large">Large (~10m)</option>
+              <select id="model" class="select-compact" title="Use Distil-Large for English. Switch to Large-v3 (or Medium) for Hindi / mixed audio.">
+                <option value="tiny">Tiny (fastest, low accuracy)</option>
+                <option value="base">Base (fast, low accuracy)</option>
+                <option value="small">Small (fast, multilingual)</option>
+                <option value="medium">Medium (multilingual + Hindi)</option>
+                <option selected value="distil-large-v3">Distil-Large — English only (fast, default)</option>
+                <option value="large">Large-v3 — Hindi / multilingual (most accurate)</option>
               </select>
 
               <select id="language" class="select-compact">

@@ -1,13 +1,15 @@
-model_name: large-v3
-model_path: ../models/large-v3
+model_name: distil-large-v3
+model_path: Systran/faster-distil-whisper-large-v3
 language: en
 task: transcribe
-beam_size: 1
-best_of: 1
+beam_size: 5
+best_of: 5
 device: cpu
 compute_type: int8
 vad_filter: true
 condition_on_previous_text: false
+use_batched: false  # batched inference only helps on GPU/many-core; ~neutral on CPU
+batch_size: 8
 cpu_threads: 4
 num_workers: 1
 

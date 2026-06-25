@@ -10,3 +10,7 @@ uvicorn
 python-multipart
 huggingface_hub
 PyYAML
+python-dotenv
+# Speaker diarization (optional; requires HF token + accepting model terms to actually run)
+pyannote.audio>=3.1
+soundfile  # robust audio loading for diarization (avoids torchcodec backend issues)

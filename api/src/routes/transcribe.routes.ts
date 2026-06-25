@@ -1,7 +1,7 @@
 import { Router, type Router as ExpressRouter } from 'express';
 
 import { TranscribeController } from '../controllers/transcribe.controller';
-import { upload } from '../middleware/upload.middleware';
+import { upload } from '../middleware/upload';
 import { asyncHandler } from '../utils/asyncHandler';
 
 export const transcribeRouter: ExpressRouter = Router();

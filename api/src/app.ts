@@ -6,7 +6,7 @@ import path from 'node:path';
 
 import { config } from './config';
 import { registerRoutes } from './routes';
-import { errorHandler, notFoundHandler, requestLogger } from './middleware/error.middleware';
+import { errorHandler, notFoundHandler, requestLogger } from './middleware/error';
 
 import './repositories/apiKeys.repository';
 

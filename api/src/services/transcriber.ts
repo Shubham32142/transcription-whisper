@@ -69,7 +69,7 @@ export async function transcribeWithMlService(
   filePath: string,
   language: string = 'auto',
   task: string = 'transcribe',
-  model: string = 'small',
+  model: string = 'distil-large-v3',
 ): Promise<TranscriptionResult> {
   const form = new FormData();
   form.append('file', fs.createReadStream(filePath), path.basename(filePath));
@@ -108,7 +108,7 @@ export async function createTranscriptionJobWithMlService(
   fileName: string,
   language: string = 'auto',
   task: string = 'transcribe',
-  model: string = 'small',
+  model: string = 'distil-large-v3',
 ): Promise<TranscriptionJob> {
   const form = new FormData();
   form.append('file', fs.createReadStream(filePath), fileName || path.basename(filePath));
