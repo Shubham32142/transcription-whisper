@@ -23,7 +23,7 @@ export const transcribeService = {
    * Transcribe an audio file to text
    */
   async transcribe(request: TranscriptionRequest): Promise<TranscriptionResult> {
-    const { filePath, language, task, model } = request;
+    const { filePath, language, task, model, cpuThreads } = request;
 
     // Normalize audio to WAV format
     const normalizedPath = path.join(path.dirname(filePath), `${randomUUID()}.wav`);
@@ -32,7 +32,7 @@ export const transcribeService = {
       await normalizeToWav(filePath, normalizedPath);
 
       // Send to ML service
-      const result = await transcribeWithMlService(normalizedPath, language, task, model);
+      const result = await transcribeWithMlService(normalizedPath, language, task, model, cpuThreads);
 
       return result;
     } finally {
@@ -70,6 +70,7 @@ export async function transcribeWithMlService(
   language: string = 'auto',
   task: string = 'transcribe',
   model: string = 'distil-large-v3',
+  cpuThreads?: number,
 ): Promise<TranscriptionResult> {
   const form = new FormData();
   form.append('file', fs.createReadStream(filePath), path.basename(filePath));
@@ -84,6 +85,10 @@ export async function transcribeWithMlService(
 
   if (task && task !== 'transcribe') {
     form.append('task', task);
+  }
+
+  if (cpuThreads && cpuThreads > 0) {
+    form.append('cpu_threads', String(cpuThreads));
   }
 
   const headers = {
@@ -109,6 +114,7 @@ export async function createTranscriptionJobWithMlService(
   language: string = 'auto',
   task: string = 'transcribe',
   model: string = 'distil-large-v3',
+  cpuThreads?: number,
 ): Promise<TranscriptionJob> {
   const form = new FormData();
   form.append('file', fs.createReadStream(filePath), fileName || path.basename(filePath));
@@ -123,6 +129,10 @@ export async function createTranscriptionJobWithMlService(
 
   if (task) {
     form.append('task', task);
+  }
+
+  if (cpuThreads && cpuThreads > 0) {
+    form.append('cpu_threads', String(cpuThreads));
   }
 
   const headers = {

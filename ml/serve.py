@@ -34,8 +34,12 @@ app = FastAPI(title="WhisperSelf ML Service", version="1.0.0")
 
 # Model cache to store loaded models (and their batched pipelines)
 _MODELS: dict[str, WhisperModel] = {}
+# Tracks the cpu_threads each cached model was loaded with, so a request asking
+# for a different core count triggers a reload rather than reusing the old one.
+_MODEL_CPU_THREADS: dict[str, int] = {}
 _BATCHED_MODELS: dict[str, BatchedInferencePipeline] = {}
 _MODEL_LOAD_LOCK = threading.Lock()
+_MAX_CPU_THREADS = os.cpu_count() or 8
 # Diarization pipeline is loaded lazily; _DIARIZATION_LOAD_FAILED avoids retrying a bad load.
 _DIARIZATION_PIPELINE: Any = None
 _DIARIZATION_LOAD_FAILED = False
@@ -212,43 +216,63 @@ def create_job_payload(
   }
 
 
-def get_model(model_name: str | None = None) -> WhisperModel:
-  """Load and return a Whisper model. Caches loaded models for reuse (thread-safe)."""
+def resolve_cpu_threads(cpu_threads: int | None) -> int:
+  """Clamp a requested CPU thread count to [1, number of cores]; 0/None -> default."""
+  if not cpu_threads or cpu_threads <= 0:
+    return _DEFAULT_CPU_THREADS
+  return max(1, min(int(cpu_threads), _MAX_CPU_THREADS))
+
+
+def get_model(model_name: str | None = None, cpu_threads: int | None = None) -> WhisperModel:
+  """Load and return a Whisper model. Caches loaded models for reuse (thread-safe).
+
+  cpu_threads controls how many CPU cores the model uses. Because the thread count
+  is fixed when the model is constructed, a request for a different count reloads
+  the model (replacing the cached instance).
+  """
   model_key = model_name or _DEFAULT_MODEL
   model_path = _MODEL_MAPPING.get(model_key, _MODEL_NAME)
+  threads = resolve_cpu_threads(cpu_threads)
 
   cached = _MODELS.get(model_key)
-  if cached is not None:
+  if cached is not None and _MODEL_CPU_THREADS.get(model_key) == threads:
     return cached
 
   # Serialize loads so a warmup thread and an incoming request never load twice.
   with _MODEL_LOAD_LOCK:
     cached = _MODELS.get(model_key)
-    if cached is not None:
+    if cached is not None and _MODEL_CPU_THREADS.get(model_key) == threads:
       return cached
 
-    logger.info(f"Loading Whisper model: {model_key} -> {model_path}")
+    logger.info(f"Loading Whisper model: {model_key} -> {model_path} (cpu_threads={threads})")
     loaded_model = WhisperModel(
       model_path,
       device=_DEVICE,
       compute_type=_COMPUTE_TYPE,
-      cpu_threads=_DEFAULT_CPU_THREADS,
+      cpu_threads=threads,
       num_workers=_DEFAULT_NUM_WORKERS,
     )
     _MODELS[model_key] = loaded_model
-    logger.info(f"Model loaded successfully: {model_key}")
+    _MODEL_CPU_THREADS[model_key] = threads
+    # Thread count changed -> drop any batched pipeline built on the old instance.
+    _BATCHED_MODELS.pop(model_key, None)
+    logger.info(f"Model loaded successfully: {model_key} (cpu_threads={threads})")
     return loaded_model
 
 
-def get_batched_model(model_name: str | None = None) -> BatchedInferencePipeline:
+def get_batched_model(
+  model_name: str | None = None, cpu_threads: int | None = None
+) -> BatchedInferencePipeline:
   """Return a cached BatchedInferencePipeline wrapping the requested model."""
   model_key = model_name or _DEFAULT_MODEL
 
+  # Ensure the base model matches the requested thread count first (may reload it,
+  # which clears any stale batched pipeline for this key).
+  base_model = get_model(model_key, cpu_threads)
   cached = _BATCHED_MODELS.get(model_key)
   if cached is not None:
     return cached
 
-  base_model = get_model(model_key)
   with _MODEL_LOAD_LOCK:
     cached = _BATCHED_MODELS.get(model_key)
     if cached is not None:
@@ -275,6 +299,7 @@ def transcribe_audio(
   resolved_language: str | None,
   resolved_task: str,
   model_name: str | None,
+  cpu_threads: int | None = None,
 ) -> tuple[Any, Any]:
   """Transcribe via the batched pipeline when enabled, else the plain model.
 
@@ -292,10 +317,10 @@ def transcribe_audio(
   }
 
   if _USE_BATCHED:
-    pipeline = get_batched_model(model_key)
+    pipeline = get_batched_model(model_key, cpu_threads)
     return pipeline.transcribe(audio_path, batch_size=_DEFAULT_BATCH_SIZE, **params)
 
-  model_obj = get_model(model_key)
+  model_obj = get_model(model_key, cpu_threads)
   return model_obj.transcribe(audio_path, **params)
 
 
@@ -520,7 +545,13 @@ def finalize_result(
   }
 
 
-def run_transcription(audio_path: str, language: str | None, task: str | None, model: str | None = None) -> dict[str, Any]:
+def run_transcription(
+  audio_path: str,
+  language: str | None,
+  task: str | None,
+  model: str | None = None,
+  cpu_threads: int | None = None,
+) -> dict[str, Any]:
   try:
     logger.info(f"Starting transcription: {audio_path}")
     resolved_language = None if not language or language == "auto" else language
@@ -528,9 +559,9 @@ def run_transcription(audio_path: str, language: str | None, task: str | None, m
 
     logger.info(
       f"Transcribing with model={model}, language={resolved_language}, "
-      f"task={resolved_task}, batched={_USE_BATCHED}"
+      f"task={resolved_task}, batched={_USE_BATCHED}, cpu_threads={resolve_cpu_threads(cpu_threads)}"
     )
-    segments, info = transcribe_audio(audio_path, resolved_language, resolved_task, model)
+    segments, info = transcribe_audio(audio_path, resolved_language, resolved_task, model, cpu_threads)
 
     segment_list: list[dict[str, Any]] = []
     utterance_list: list[dict[str, Any]] = []
@@ -559,6 +590,7 @@ def run_transcription_job(
   language: str | None,
   task: str | None,
   model: str | None = None,
+  cpu_threads: int | None = None,
 ) -> dict[str, Any]:
   started_at = time.monotonic()
 
@@ -569,7 +601,7 @@ def run_transcription_job(
     resolved_task = task or _DEFAULT_TASK
 
     update_job(job_id, progress=build_progress(stage="transcribing", percentage=5.0))
-    segments, info = transcribe_audio(audio_path, resolved_language, resolved_task, model)
+    segments, info = transcribe_audio(audio_path, resolved_language, resolved_task, model, cpu_threads)
 
     total_seconds = float(info.duration or 0.0) or None
     segment_list: list[dict[str, Any]] = []
@@ -627,11 +659,14 @@ async def process_transcription_job(
   language: str,
   task: str,
   model: str,
+  cpu_threads: int | None = None,
 ) -> None:
   started_at = time.monotonic()
 
   try:
-    result = await asyncio.to_thread(run_transcription_job, job_id, temp_file_path, language, task, model)
+    result = await asyncio.to_thread(
+      run_transcription_job, job_id, temp_file_path, language, task, model, cpu_threads
+    )
     elapsed_seconds = time.monotonic() - started_at
     total_seconds = float(result.get("duration") or 0.0) or None
     update_job(
@@ -724,6 +759,7 @@ async def transcribe(
   model: str = Form(default=_DEFAULT_MODEL),
   language: str = Form(default="auto"),
   task: str = Form(default=_DEFAULT_TASK),
+  cpu_threads: int = Form(default=0),
 ) -> dict[str, Any]:
   suffix = Path(file.filename or "audio.wav").suffix or ".wav"
   temp_file_path = ""
@@ -737,7 +773,7 @@ async def transcribe(
       temp_file.write(content)
 
     logger.info(f"Processing file: {temp_file_path}")
-    result = run_transcription(temp_file_path, language, task, model)
+    result = run_transcription(temp_file_path, language, task, model, cpu_threads)
     logger.info("Transcription successful")
     return result
   except Exception as exc:
@@ -755,6 +791,7 @@ async def create_transcription_job(
   model: str = Form(default=_DEFAULT_MODEL),
   language: str = Form(default="auto"),
   task: str = Form(default=_DEFAULT_TASK),
+  cpu_threads: int = Form(default=0),
 ) -> dict[str, Any]:
   prune_jobs()
 
@@ -779,7 +816,9 @@ async def create_transcription_job(
     with _JOB_LOCK:
       _JOBS[job_id] = job
 
-    asyncio.create_task(process_transcription_job(job_id, temp_file_path, language, task, model))
+    asyncio.create_task(
+      process_transcription_job(job_id, temp_file_path, language, task, model, cpu_threads)
+    )
     return snapshot_job(job_id)
   except Exception as exc:
     logger.error(f"Failed to create transcription job: {str(exc)}", exc_info=True)

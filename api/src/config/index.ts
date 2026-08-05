@@ -11,13 +11,30 @@ export const config = {
   },
 
   upload: {
+    // Soft limit: files up to this size upload silently. Files above it trigger
+    // a "this file is large, continue?" confirmation in the UI.
     maxFileSizeMb: Number(process.env.MAX_FILE_SIZE_MB) || 100,
+    // Absolute hard ceiling enforced server-side. Files above this are rejected
+    // outright (protects memory/disk). Defaults generously above the soft limit.
+    hardMaxFileSizeMb:
+      Number(process.env.HARD_MAX_FILE_SIZE_MB) ||
+      Math.max(Number(process.env.MAX_FILE_SIZE_MB) || 100, 5120),
     dir: process.env.UPLOAD_DIR || './uploads',
     allowedTypes: (
       process.env.ALLOWED_AUDIO_TYPES || 'audio/mpeg,audio/wav,audio/webm,audio/mp4,audio/ogg'
     )
       .split(',')
       .map((item) => item.trim())
+      .filter(Boolean),
+    // Fallback allow-list by file extension. Browsers on some OSes report an
+    // empty or generic MIME (e.g. application/octet-stream) for containers like
+    // .mkv, so we also accept files whose extension is listed here.
+    allowedExtensions: (
+      process.env.ALLOWED_EXTENSIONS ||
+      '.mp3,.wav,.webm,.mp4,.m4a,.ogg,.oga,.opus,.mkv,.mov,.flac,.aac,.avi,.wmv,.3gp'
+    )
+      .split(',')
+      .map((item) => item.trim().toLowerCase())
       .filter(Boolean),
   },
 

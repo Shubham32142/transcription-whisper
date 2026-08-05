@@ -3,11 +3,12 @@ import path from "node:path";
 import { randomUUID } from "node:crypto";
 import fs from "node:fs";
 import { config } from "../config";
+import { logger } from "../config/logger";
+import { isAllowedUpload } from "../utils/fileValidation";
 
 const uploadDirectory =
   config.upload.dir ?? path.resolve(process.cwd(), "..", "uploads");
-const maxFileSizeMb = config.upload.maxFileSizeMb;
-const allowedMimeTypes = config.upload.allowedTypes;
+const hardMaxFileSizeMb = config.upload.hardMaxFileSizeMb;
 
 if (!fs.existsSync(uploadDirectory)) {
   fs.mkdirSync(uploadDirectory, { recursive: true });
@@ -28,7 +29,12 @@ function fileFilter(
   file: Express.Multer.File,
   callback: multer.FileFilterCallback,
 ): void {
-  if (!allowedMimeTypes.includes(file.mimetype)) {
+  if (!isAllowedUpload(file.mimetype, file.originalname)) {
+    logger.warn("Rejected upload: unsupported file type", {
+      mimetype: file.mimetype,
+      originalname: file.originalname,
+      extension: path.extname(file.originalname || "").toLowerCase(),
+    });
     callback(new Error("Unsupported file type"));
     return;
   }
@@ -40,6 +46,6 @@ export const upload = multer({
   storage,
   fileFilter,
   limits: {
-    fileSize: maxFileSizeMb * 1024 * 1024,
+    fileSize: hardMaxFileSizeMb * 1024 * 1024,
   },
 });

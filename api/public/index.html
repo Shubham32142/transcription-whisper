@@ -43,19 +43,23 @@
             </div>
           </div>
 
-          <!-- Options & Submit in one row -->
-          <div class="controls-row">
-            <div class="options-inline">
-              <select id="model" class="select-compact" title="Use Distil-Large for English. Switch to Large-v3 (or Medium) for Hindi / mixed audio.">
-                <option value="tiny">Tiny (fastest, low accuracy)</option>
-                <option value="base">Base (fast, low accuracy)</option>
-                <option value="small">Small (fast, multilingual)</option>
-                <option value="medium">Medium (multilingual + Hindi)</option>
-                <option selected value="distil-large-v3">Distil-Large — English only (fast, default)</option>
-                <option value="large">Large-v3 — Hindi / multilingual (most accurate)</option>
+          <!-- Options -->
+          <div class="controls">
+            <div class="control-field">
+              <label for="model">Model</label>
+              <select id="model" title="Use Distil-Large for English. Switch to Large-v3 (or Medium) for Hindi / mixed audio.">
+                <option value="tiny">Tiny — fastest, low accuracy</option>
+                <option value="base">Base — fast, low accuracy</option>
+                <option value="small">Small — fast, multilingual</option>
+                <option value="medium">Medium — multilingual + Hindi</option>
+                <option selected value="distil-large-v3">Distil-Large — English only (fast)</option>
+                <option value="large">Large-v3 — Hindi / multilingual (best)</option>
               </select>
+            </div>
 
-              <select id="language" class="select-compact">
+            <div class="control-field">
+              <label for="language">Language</label>
+              <select id="language">
                 <option value="auto">Auto Detect</option>
                 <option value="en">English</option>
                 <option value="es">Spanish</option>
@@ -70,19 +74,30 @@
                 <option value="hi">Hindi</option>
                 <option value="ar">Arabic</option>
               </select>
+            </div>
 
-              <select id="task" class="select-compact">
+            <div class="control-field">
+              <label for="task">Task</label>
+              <select id="task">
                 <option value="transcribe">Transcribe</option>
                 <option value="translate">Translate to English</option>
               </select>
             </div>
 
+            <div class="control-field">
+              <label for="cpuThreads">CPU cores</label>
+              <select id="cpuThreads" title="How many CPU cores to use. Fewer cores = less load on your computer but slower transcription.">
+                <!-- Options populated from the browser's core count in app.js -->
+              </select>
+            </div>
+          </div>
+
+          <div class="action-row">
+            <p id="limitInfo" class="limit-info"></p>
             <button id="submitBtn" class="btn btn-success" disabled>
               <i data-lucide="play" class="btn-icon"></i> Transcribe
             </button>
           </div>
-
-          <p id="limitInfo" class="limit-info"></p>
         </section>
 
         <!-- Loading Section -->

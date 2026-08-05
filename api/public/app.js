@@ -22,6 +22,7 @@ const submitBtn = document.getElementById('submitBtn');
 const modelSelect = document.getElementById('model');
 const languageSelect = document.getElementById('language');
 const taskSelect = document.getElementById('task');
+const cpuThreadsSelect = document.getElementById('cpuThreads');
 const loadingSection = document.getElementById('loadingSection');
 const loadingText = document.getElementById('loadingText');
 const progressBar = document.getElementById('progressBar');
@@ -35,10 +36,23 @@ const historyList = document.getElementById('history');
 // Initialize
 document.addEventListener('DOMContentLoaded', async () => {
     lucide.createIcons();
+    populateCpuThreads();
     await fetchServerLimits();
     loadHistory();
     setupEventListeners();
 });
+
+// Populate the CPU cores dropdown from the number of cores the browser reports.
+// "Auto" (empty value) lets the ML server use its own default.
+function populateCpuThreads() {
+    if (!cpuThreadsSelect) return;
+    const maxCores = navigator.hardwareConcurrency || 4;
+    let html = '<option value="">Auto</option>';
+    for (let i = 1; i <= maxCores; i++) {
+        html += `<option value="${i}">${i} core${i > 1 ? 's' : ''}</option>`;
+    }
+    cpuThreadsSelect.innerHTML = html;
+}
 
 // Fetch server limits
 async function fetchServerLimits() {
@@ -48,9 +62,11 @@ async function fetchServerLimits() {
             const apiResponse = await response.json();
             const config = apiResponse.data || apiResponse;
             const maxSizeMB = config.upload?.maxFileSizeMb || 100;
+            const hardMaxSizeMB = config.upload?.hardMaxFileSizeMb || maxSizeMB;
             const allowedTypes = config.upload?.allowedMimeTypes || [];
-            limitInfo.textContent = `Maximum file size: ${maxSizeMB} MB | Supported: ${allowedTypes.join(', ')}`;
+            limitInfo.textContent = `Recommended max: ${maxSizeMB} MB (larger files ask for confirmation) | Supported: ${allowedTypes.join(', ')}`;
             window.MAX_FILE_SIZE = maxSizeMB * 1024 * 1024;
+            window.HARD_MAX_FILE_SIZE = hardMaxSizeMB * 1024 * 1024;
         }
     } catch (error) {
         console.error('Error fetching server config:', error);
@@ -92,9 +108,12 @@ function setupEventListeners() {
 
 // File Selection
 function handleFileSelect(file) {
-    // Check file size
-    if (file.size > window.MAX_FILE_SIZE) {
-        showToast(`File size exceeds ${window.MAX_FILE_SIZE / 1024 / 1024}MB limit`, 'error');
+    // Only reject files above the absolute hard ceiling. Files between the
+    // recommended (soft) limit and the hard ceiling are accepted here and
+    // confirmed by the user when they click Transcribe.
+    const hardMax = window.HARD_MAX_FILE_SIZE || window.MAX_FILE_SIZE || MAX_FILE_SIZE;
+    if (file.size > hardMax) {
+        showToast(`File is ${formatFileSize(file.size)} — exceeds the maximum of ${formatFileSize(hardMax)}`, 'error');
         return;
     }
 
@@ -104,6 +123,12 @@ function handleFileSelect(file) {
     lucide.createIcons();
     fileInfo.classList.remove('hidden');
     submitBtn.disabled = false;
+
+    // Heads-up if above the recommended limit (confirmation happens on Transcribe)
+    const softMax = window.MAX_FILE_SIZE || MAX_FILE_SIZE;
+    if (file.size > softMax) {
+        showToast(`Large file (${formatFileSize(file.size)}) — you'll be asked to confirm before transcribing`, 'info');
+    }
 }
 
 // Transcription
@@ -113,6 +138,21 @@ async function transcribe() {
         return;
     }
 
+    // Large-file confirmation: if the file is above the recommended (soft) limit,
+    // ask the user whether they want to continue before starting transcription.
+    const softMax = window.MAX_FILE_SIZE || MAX_FILE_SIZE;
+    if (selectedFile.size > softMax) {
+        const proceed = confirm(
+            `This file is ${formatFileSize(selectedFile.size)}, which is larger than the recommended limit of ${formatFileSize(softMax)}.\n\n` +
+            `Large files can take a long time and use significant memory. Do you want to continue? ` +
+            `If you click OK, the transcription will start.`
+        );
+        if (!proceed) {
+            showToast('Transcription cancelled', 'info');
+            return;
+        }
+    }
+
     const selectedModel = modelSelect.value;
 
     const formData = new FormData();
@@ -120,6 +160,9 @@ async function transcribe() {
     formData.append('model', selectedModel);
     formData.append('language', languageSelect.value);
     formData.append('task', taskSelect.value);
+    if (cpuThreadsSelect && cpuThreadsSelect.value) {
+        formData.append('cpuThreads', cpuThreadsSelect.value);
+    }
 
     // Disable all interactive elements
     submitBtn.disabled = true;
@@ -128,6 +171,7 @@ async function transcribe() {
     languageSelect.disabled = true;
     taskSelect.disabled = true;
     modelSelect.disabled = true;
+    if (cpuThreadsSelect) cpuThreadsSelect.disabled = true;
 
     loadingSection.classList.remove('hidden');
     resultsSection.classList.add('hidden');
@@ -154,6 +198,7 @@ async function transcribe() {
         languageSelect.disabled = false;
         taskSelect.disabled = false;
         modelSelect.disabled = false;
+        if (cpuThreadsSelect) cpuThreadsSelect.disabled = false;
     } finally {
         loadingSection.classList.add('hidden');
         progressBar.style.width = '0%';
@@ -357,11 +402,28 @@ function loadHistory() {
     historySection.classList.remove('hidden');
     historyList.innerHTML = history.map(item => `
         <div class="history-item" onclick="loadHistoryItem('${item.id}')">
+            <button class="history-copy-btn" onclick="copyHistoryItem(event, '${item.id}')" title="Copy full transcript" aria-label="Copy full transcript">
+                <i data-lucide="copy"></i>
+            </button>
             <div class="history-item-text">${item.text}</div>
             <div class="history-item-meta">${item.timestamp} • ${item.language}</div>
         </div>
     `).join('');
     lucide.createIcons();
+}
+
+// Copy the FULL transcript of a history item directly (not the truncated preview)
+function copyHistoryItem(event, id) {
+    event.stopPropagation();
+    const history = JSON.parse(localStorage.getItem('transcriptionHistory') || '[]');
+    const item = history.find(h => h.id == id);
+    if (item && item.transcript) {
+        navigator.clipboard.writeText(item.transcript)
+            .then(() => showToast('Full transcript copied!', 'success'))
+            .catch(() => showToast('Copy failed — try selecting the text', 'error'));
+    } else {
+        showToast('Nothing to copy', 'error');
+    }
 }
 
 function loadHistoryItem(id) {
@@ -382,6 +444,7 @@ function loadHistoryItem(id) {
             </div>
         `;
         resultsSection.classList.remove('hidden');
+        resultsSection.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     }
 }
 
@@ -391,6 +454,7 @@ function enableControls() {
     uploadArea.style.opacity = '1';
     languageSelect.disabled = false;
     taskSelect.disabled = false;
+    if (cpuThreadsSelect) cpuThreadsSelect.disabled = false;
 }
 
 // Actions

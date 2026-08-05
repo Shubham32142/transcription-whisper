@@ -15,6 +15,7 @@ import {
   transcribeService,
 } from '../services/transcriber';
 import { TranscriptionRequest } from '../types';
+import { isAllowedUpload } from '../utils/fileValidation';
 
 const supportedLanguages = ['auto', 'en', 'es', 'fr', 'de', 'ja', 'zh', 'ar', 'pt', 'ru'];
 const supportedModels = ['tiny', 'base', 'small', 'medium', 'distil-large-v3', 'large'];
@@ -28,16 +29,19 @@ function buildTranscriptionRequest(req: Request): TranscriptionRequest {
     });
   }
 
-  const maxFileSizeBytes = config.upload.maxFileSizeMb * 1024 * 1024;
-  if (req.file.size > maxFileSizeBytes) {
-    throw new FileTooLargeError(`File size exceeds limit of ${config.upload.maxFileSizeMb}MB`, {
-      maxSize: maxFileSizeBytes,
-      actualSize: req.file.size,
-    });
+  const hardMaxFileSizeBytes = config.upload.hardMaxFileSizeMb * 1024 * 1024;
+  if (req.file.size > hardMaxFileSizeBytes) {
+    throw new FileTooLargeError(
+      `File size exceeds the maximum of ${config.upload.hardMaxFileSizeMb}MB`,
+      {
+        maxSize: hardMaxFileSizeBytes,
+        actualSize: req.file.size,
+      },
+    );
   }
 
   const contentType = req.file.mimetype;
-  if (!config.upload.allowedTypes.includes(contentType)) {
+  if (!isAllowedUpload(contentType, req.file.originalname)) {
     throw new UnsupportedFileTypeError(
       `File type not supported. Allowed: ${config.upload.allowedTypes.join(', ')}`,
       {
@@ -47,10 +51,25 @@ function buildTranscriptionRequest(req: Request): TranscriptionRequest {
     );
   }
 
-  const body = req.body as { language?: string; task?: string; model?: string } | undefined;
+  const body = req.body as
+    | { language?: string; task?: string; model?: string; cpuThreads?: string }
+    | undefined;
   const language = body?.language || 'auto';
   const task = body?.task || 'transcribe';
   const model = body?.model || 'distil-large-v3';
+
+  // Optional CPU core count. 0/absent means "use the ML server default".
+  let cpuThreads = 0;
+  if (body?.cpuThreads !== undefined && body.cpuThreads !== '') {
+    const parsed = Number(body.cpuThreads);
+    if (!Number.isInteger(parsed) || parsed < 1 || parsed > 128) {
+      throw new ValidationError('Invalid cpuThreads', {
+        field: 'cpuThreads',
+        message: `cpuThreads must be an integer between 1 and 128, got: ${body.cpuThreads}`,
+      });
+    }
+    cpuThreads = parsed;
+  }
 
   if (!supportedLanguages.includes(language)) {
     throw new ValidationError('Invalid language', {
@@ -81,6 +100,7 @@ function buildTranscriptionRequest(req: Request): TranscriptionRequest {
     language,
     task: task as 'transcribe' | 'translate',
     model: model as 'tiny' | 'base' | 'small' | 'medium' | 'distil-large-v3' | 'large',
+    cpuThreads,
   };
 }
 
@@ -172,6 +192,7 @@ export class TranscribeController {
           transcriptionRequest.language,
           transcriptionRequest.task,
           transcriptionRequest.model,
+          transcriptionRequest.cpuThreads,
         );
 
         recordUsage(req.apiKey);
@@ -236,6 +257,7 @@ export class TranscribeController {
       const publicConfig = {
         upload: {
           maxFileSizeMb: config.upload.maxFileSizeMb,
+          hardMaxFileSizeMb: config.upload.hardMaxFileSizeMb,
           allowedMimeTypes: config.upload.allowedTypes,
           maxDurationSeconds: 3600,
         },

@@ -52,6 +52,8 @@ export interface TranscriptionRequest {
   language: string;
   task: 'transcribe' | 'translate';
   model?: 'tiny' | 'base' | 'small' | 'medium' | 'distil-large-v3' | 'large';
+  // Number of CPU cores/threads the ML service should use (0 = server default).
+  cpuThreads?: number;
 }
 
 export interface TranscriptionJobProgress {
